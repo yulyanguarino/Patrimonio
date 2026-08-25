@@ -130,7 +130,17 @@ class AssetListView(BaseView):
             expand=True
         )
         self.form_employee = ft.Dropdown(label="Funcionário Responsável*", hint_text="Selecione o Responsável", visible=False, border_radius=8, expand=True)
-        self.form_nf = ft.TextField(label="Nota Fiscal", border_radius=8)
+        self.form_nf = ft.TextField(label="Nota Fiscal", border_radius=8, expand=True)
+        self.selected_nf_path = None
+        self.nf_file_picker = ft.FilePicker()
+        if self.nf_file_picker not in self.page.overlay:
+            self.page.overlay.append(self.nf_file_picker)
+        self.nf_file_text = ft.Text("Nenhum arquivo anexado", size=12, italic=True, color=ft.Colors.ON_SURFACE_VARIANT)
+        self.nf_upload_btn = ft.IconButton(
+            ft.Icons.ATTACH_FILE_ROUNDED,
+            tooltip="Anexar Nota Fiscal (PDF ou imagem, opcional)",
+            on_click=self._on_pick_nf_file
+        )
         self.form_garantia = ft.TextField(label="Garantia (Meses)", keyboard_type=ft.KeyboardType.NUMBER, border_radius=8)
         self.form_obs = ft.TextField(label="Observações", multiline=True, min_lines=2, max_lines=4, border_radius=8)
         
@@ -269,6 +279,22 @@ class AssetListView(BaseView):
             ]
         )
 
+    async def _on_pick_nf_file(self, e):
+        files = await self.nf_file_picker.pick_files(
+            allow_multiple=False,
+            dialog_title="Selecione a Nota Fiscal (PDF ou imagem)"
+        )
+        if files:
+            self.selected_nf_path = files[0].path
+            self.nf_file_text.value = files[0].name
+            self.nf_file_text.italic = False
+            self.nf_file_text.weight = ft.FontWeight.BOLD
+            self.nf_file_text.color = ft.Colors.ON_SURFACE
+            try:
+                self.nf_file_text.update()
+            except RuntimeError:
+                pass
+
     def _on_form_status_change(self, e):
         self.form_employee.visible = (self.form_status.value == "Em uso")
         try:
@@ -308,7 +334,8 @@ class AssetListView(BaseView):
         self.form_obs.value = ""
         self.date_text.value = "Nenhuma data selecionada"
         self.date_text.italic = True
-        
+        self._reset_nf_upload()
+
         self._show_form_modal("Cadastrar Patrimônio")
 
     def _open_edit_dialog(self, asset):
@@ -349,8 +376,16 @@ class AssetListView(BaseView):
         else:
             self.date_text.value = "Nenhuma data selecionada"
             self.date_text.italic = True
-            
+        self._reset_nf_upload()
+
         self._show_form_modal(f"Editar Patrimônio - {asset.numero_patrimonial}")
+
+    def _reset_nf_upload(self):
+        self.selected_nf_path = None
+        self.nf_file_text.value = "Nenhum arquivo anexado"
+        self.nf_file_text.italic = True
+        self.nf_file_text.weight = None
+        self.nf_file_text.color = ft.Colors.ON_SURFACE_VARIANT
 
     def _show_form_modal(self, title: str):
         def close_dialog(e):
@@ -372,7 +407,8 @@ class AssetListView(BaseView):
                         self.date_btn,
                         self.date_text
                     ], spacing=10, vertical_alignment=ft.CrossAxisAlignment.CENTER),
-                    self.form_nf,
+                    ft.Row([self.form_nf, self.nf_upload_btn], spacing=5, vertical_alignment=ft.CrossAxisAlignment.CENTER),
+                    self.nf_file_text,
                     self.form_garantia,
                     self.form_obs,
                 ], spacing=12, scroll=ft.ScrollMode.AUTO),
@@ -482,6 +518,14 @@ class AssetListView(BaseView):
             )
             
         if success:
+            if self.selected_nf_path:
+                att_success, att_res = self.controller.add_attachment(
+                    source_path=self.selected_nf_path,
+                    tipo_documento="Nota Fiscal",
+                    asset_id=res.id
+                )
+                if not att_success:
+                    show_error_snackbar(self.page, f"Patrimônio salvo, mas falhou ao anexar a nota fiscal: {att_res}")
             show_success_snackbar(self.page, "Patrimônio salvo com sucesso!")
             dialog.open = False
             try:
