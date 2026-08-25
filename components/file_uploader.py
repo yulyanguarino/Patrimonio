@@ -7,8 +7,8 @@ class FileUploader(ft.Container):
         self.on_file_selected = on_file_selected
         self.selected_path = None
 
-        # O FilePicker do Flet
-        self.file_picker = ft.FilePicker(on_result=self._on_picker_result)
+        # O FilePicker do Flet (API assíncrona: pick_files() retorna a lista de arquivos)
+        self.file_picker = ft.FilePicker()
 
         # Adiciona o FilePicker no overlay caso não exista
         if self.file_picker not in self.page.overlay:
@@ -19,10 +19,7 @@ class FileUploader(ft.Container):
         self.select_btn = ft.ElevatedButton(
             "Selecionar Arquivo",
             icon=ft.Icons.ATTACH_FILE_ROUNDED,
-            on_click=lambda _: self.file_picker.pick_files(
-                allow_multiple=False,
-                dialog_title="Selecione o documento/anexo"
-            ),
+            on_click=self._on_select_click,
             style=ft.ButtonStyle(
                 shape=ft.RoundedRectangleBorder(radius=8)
             )
@@ -57,9 +54,13 @@ class FileUploader(ft.Container):
     def page(self):
         return self._custom_page
 
-    def _on_picker_result(self, e):
-        if e.files:
-            file = e.files[0]
+    async def _on_select_click(self, e):
+        files = await self.file_picker.pick_files(
+            allow_multiple=False,
+            dialog_title="Selecione o documento/anexo"
+        )
+        if files:
+            file = files[0]
             self.selected_path = file.path
             self.file_name_text.value = file.name
             self.file_name_text.italic = False
