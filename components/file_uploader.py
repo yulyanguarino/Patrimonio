@@ -7,12 +7,9 @@ class FileUploader(ft.Container):
         self.on_file_selected = on_file_selected
         self.selected_path = None
 
-        # O FilePicker do Flet (API assíncrona: pick_files() retorna a lista de arquivos)
+        # O FilePicker do Flet é um "Service" (não um controle visual) e se
+        # auto-registra ao ser criado -- não deve ser adicionado ao page.overlay.
         self.file_picker = ft.FilePicker()
-
-        # Adiciona o FilePicker no overlay caso não exista
-        if self.file_picker not in self.page.overlay:
-            self.page.overlay.append(self.file_picker)
 
         self.file_name_text = ft.Text("Nenhum arquivo selecionado", size=13, italic=True, color=ft.Colors.ON_SURFACE_VARIANT)
 

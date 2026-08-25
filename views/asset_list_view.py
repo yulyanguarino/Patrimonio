@@ -132,9 +132,8 @@ class AssetListView(BaseView):
         self.form_employee = ft.Dropdown(label="Funcionário Responsável*", hint_text="Selecione o Responsável", visible=False, border_radius=8, expand=True)
         self.form_nf = ft.TextField(label="Nota Fiscal", border_radius=8, expand=True)
         self.selected_nf_path = None
+        # Service (não controle visual): se auto-registra, não vai no page.overlay.
         self.nf_file_picker = ft.FilePicker()
-        if self.nf_file_picker not in self.page.overlay:
-            self.page.overlay.append(self.nf_file_picker)
         self.nf_file_text = ft.Text("Nenhum arquivo anexado", size=12, italic=True, color=ft.Colors.ON_SURFACE_VARIANT)
         self.nf_upload_btn = ft.IconButton(
             ft.Icons.ATTACH_FILE_ROUNDED,
