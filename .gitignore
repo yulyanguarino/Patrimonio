@@ -13,3 +13,7 @@ assets/labels/*
 !assets/labels/.gitkeep
 logs/*
 !logs/.gitkeep
+uploads/
+build/
+dist/
+*.spec

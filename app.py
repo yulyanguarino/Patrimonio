@@ -19,11 +19,14 @@ class PatrimonioApp(ft.Row):
         self.expand = True
         self.spacing = 0
         
-        # Cria uma conexão de banco dedicada à sessão do aplicativo desktop
+        # Cria uma conexão de banco dedicada à sessão do aplicativo/sessão
         self.db = SessionLocal()
 
-        # Sobe o servidor local de status (usado pelo QR Code das etiquetas)
-        start_server()
+        # Sobe o servidor local de status (usado pelo QR Code no modo desktop).
+        # Quando hospedado (web), a página de status é servida via rota pública
+        # em web_main.py -- não precisa desse servidor local.
+        if not page.web:
+            start_server()
         
         # Contêiner onde a tela ativa será renderizada
         self.main_content = ft.Container(
@@ -88,6 +91,7 @@ class PatrimonioApp(ft.Row):
         view.on_mount()
 
     def close(self) -> None:
-        """Libera os recursos do banco de dados e do servidor local ao fechar a janela."""
-        stop_server()
+        """Libera os recursos do banco de dados e do servidor local ao fechar a janela/sessão."""
+        if not self.page.web:
+            stop_server()
         self.db.close()

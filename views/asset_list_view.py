@@ -8,6 +8,8 @@ from controllers.sector_controller import SectorController
 from controllers.employee_controller import EmployeeController
 from components.custom_table import CustomTable
 from components.dialogs import show_success_snackbar, show_error_snackbar, show_confirm_dialog
+from utils.uploads import resolve_picked_file
+from utils.file_actions import open_file
 
 class AssetListView(BaseView):
     def __init__(self, page: ft.Page, db, navigate_to, **kwargs):
@@ -284,7 +286,7 @@ class AssetListView(BaseView):
             dialog_title="Selecione a Nota Fiscal (PDF ou imagem)"
         )
         if files:
-            self.selected_nf_path = files[0].path
+            self.selected_nf_path = await resolve_picked_file(self.page, self.nf_file_picker, files[0])
             self.nf_file_text.value = files[0].name
             self.nf_file_text.italic = False
             self.nf_file_text.weight = ft.FontWeight.BOLD
@@ -539,10 +541,7 @@ class AssetListView(BaseView):
         success, res = self.controller.generate_label(asset_id)
         if success:
             show_success_snackbar(self.page, f"Etiqueta gerada em: {res}")
-            try:
-                os.startfile(res)
-            except Exception:
-                pass
+            open_file(self.page, res)
         else:
             show_error_snackbar(self.page, res)
 

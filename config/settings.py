@@ -1,9 +1,16 @@
 import os
+import sys
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Diretório Base do Projeto
-BASE_DIR = Path(__file__).resolve().parent.parent
+# Diretório Base do Projeto. Quando empacotado com PyInstaller (`flet pack`),
+# __file__ aponta pra uma pasta temporária que é apagada ao fechar o app --
+# usamos a pasta do próprio .exe nesse caso, pra .env/anexos/etiquetas
+# ficarem num lugar persistente ao lado do executável.
+if getattr(sys, "frozen", False):
+    BASE_DIR = Path(sys.executable).resolve().parent
+else:
+    BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Carrega as variáveis do arquivo .env, se existir
 env_path = BASE_DIR / ".env"
@@ -38,6 +45,10 @@ LOGS_DIR.mkdir(parents=True, exist_ok=True)
 # Diretório para as etiquetas (PDF) geradas
 LABELS_DIR = BASE_DIR / "assets" / "labels"
 LABELS_DIR.mkdir(parents=True, exist_ok=True)
+
+# Diretório de uploads temporários (usado só no modo web, ver utils/uploads.py)
+UPLOADS_DIR = BASE_DIR / "uploads"
+UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Servidor local de status do patrimônio (usado pelo QR Code da etiqueta)
 LOCAL_SERVER_HOST = "0.0.0.0"  # precisa ser 0.0.0.0, não 127.0.0.1, para o celular alcançar

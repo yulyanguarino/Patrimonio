@@ -1,5 +1,7 @@
 import flet as ft
 
+from utils.uploads import resolve_picked_file
+
 class FileUploader(ft.Container):
     def __init__(self, page: ft.Page, on_file_selected, **kwargs):
         super().__init__(**kwargs)
@@ -58,7 +60,7 @@ class FileUploader(ft.Container):
         )
         if files:
             file = files[0]
-            self.selected_path = file.path
+            self.selected_path = await resolve_picked_file(self.page, self.file_picker, file)
             self.file_name_text.value = file.name
             self.file_name_text.italic = False
             self.file_name_text.weight = ft.FontWeight.BOLD

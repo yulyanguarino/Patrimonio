@@ -1,4 +1,5 @@
 import io
+import os
 
 import qrcode
 from reportlab.lib.units import mm
@@ -58,5 +59,8 @@ class LabelService:
         return str(output_path)
 
     def _build_status_url(self, numero_patrimonial: str) -> str:
+        public_base_url = os.getenv("PUBLIC_BASE_URL")
+        if public_base_url:
+            return f"{public_base_url.rstrip('/')}/patrimonio/{numero_patrimonial}"
         ip = get_local_ip()
         return f"http://{ip}:{LOCAL_SERVER_PORT}/patrimonio/{numero_patrimonial}"
