@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.env
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+assets/attachments/*
+!assets/attachments/.gitkeep
+assets/labels/*
+!assets/labels/.gitkeep
+logs/*
+!logs/.gitkeep
