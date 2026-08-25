@@ -34,3 +34,11 @@ ATTACHMENTS_DIR.mkdir(parents=True, exist_ok=True)
 # Diretório de logs
 LOGS_DIR = BASE_DIR / "logs"
 LOGS_DIR.mkdir(parents=True, exist_ok=True)
+
+# Diretório para as etiquetas (PDF) geradas
+LABELS_DIR = BASE_DIR / "assets" / "labels"
+LABELS_DIR.mkdir(parents=True, exist_ok=True)
+
+# Servidor local de status do patrimônio (usado pelo QR Code da etiqueta)
+LOCAL_SERVER_HOST = "0.0.0.0"  # precisa ser 0.0.0.0, não 127.0.0.1, para o celular alcançar
+LOCAL_SERVER_PORT = int(os.getenv("LOCAL_SERVER_PORT", "8765"))

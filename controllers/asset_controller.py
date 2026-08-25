@@ -2,6 +2,7 @@ from datetime import date
 from controllers.base_controller import BaseController
 from services.asset_service import AssetService
 from services.attachment_service import AttachmentService
+from services.label_service import LabelService
 from utils.exceptions import BusinessRuleException
 
 class AssetController(BaseController):
@@ -9,6 +10,7 @@ class AssetController(BaseController):
         super().__init__(db)
         self.service = AssetService(db)
         self.attachment_service = AttachmentService(db)
+        self.label_service = LabelService(db)
 
     def search_assets(self, query_text: str | None = None, category_id: int | None = None, sector_id: int | None = None, status: str | None = None):
         """Retorna lista filtrada de patrimônios."""
@@ -126,3 +128,13 @@ class AssetController(BaseController):
             return False, str(e)
         except Exception as e:
             return False, f"Erro inesperado: {str(e)}"
+
+    def generate_label(self, asset_id: int):
+        """Gera o PDF de etiqueta (QR Code + número patrimonial) para impressão térmica."""
+        try:
+            path = self.label_service.generate_label(asset_id)
+            return True, path
+        except BusinessRuleException as e:
+            return False, str(e)
+        except Exception as e:
+            return False, f"Erro inesperado ao gerar etiqueta: {str(e)}"

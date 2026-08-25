@@ -49,6 +49,16 @@ class AssetDetailView(BaseView):
         )
         self.title_text = ft.Text("Detalhes do Patrimônio", size=24, weight=ft.FontWeight.BOLD)
         self.subtitle_text = ft.Text("", size=14, color=ft.Colors.ON_SURFACE_VARIANT)
+        self.label_btn = ft.ElevatedButton(
+            "Gerar Etiqueta",
+            icon=ft.Icons.QR_CODE_2_ROUNDED,
+            on_click=self._on_generate_label,
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8),
+                bgcolor=ft.Colors.BLUE_400,
+                color=ft.Colors.WHITE
+            )
+        )
         
         # Cartões de Informação do Patrimônio
         self.info_grid = ft.GridView(
@@ -137,7 +147,7 @@ class AssetDetailView(BaseView):
         ], spacing=10)
         
         self.content = ft.Column([
-            ft.Row([self.back_btn, self.title_text], spacing=10),
+            ft.Row([self.back_btn, self.title_text, ft.Container(expand=True), self.label_btn], spacing=10),
             self.subtitle_text,
             ft.Divider(height=10, color=ft.Colors.OUTLINE_VARIANT),
             self.info_grid,
@@ -394,6 +404,17 @@ class AssetDetailView(BaseView):
             self.refresh_data()
         else:
             show_error_snackbar(self.page, message)
+
+    def _on_generate_label(self, e):
+        success, res = self.controller.generate_label(self.asset_id)
+        if success:
+            show_success_snackbar(self.page, f"Etiqueta gerada em: {res}")
+            try:
+                os.startfile(res)
+            except Exception:
+                pass
+        else:
+            show_error_snackbar(self.page, res)
 
     def _on_file_selected(self, source_path: str, doc_type: str):
         success, res = self.controller.add_attachment(

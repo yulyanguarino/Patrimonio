@@ -19,18 +19,32 @@ class BaseRepository(Generic[T]):
         return self.db.query(self.model).all()
 
     def create(self, obj: T) -> T:
-        """Adiciona um novo registro e realiza flush para obter o ID gerado."""
-        self.db.add(obj)
-        self.db.flush()
-        return obj
+        """Adiciona um novo registro e confirma a transação."""
+        try:
+            self.db.add(obj)
+            self.db.commit()
+            self.db.refresh(obj)
+            return obj
+        except Exception:
+            self.db.rollback()
+            raise
 
     def update(self, obj: T) -> T:
-        """Marca o objeto para atualização no flush/commit."""
-        self.db.add(obj)
-        self.db.flush()
-        return obj
+        """Marca o objeto para atualização e confirma a transação."""
+        try:
+            self.db.add(obj)
+            self.db.commit()
+            self.db.refresh(obj)
+            return obj
+        except Exception:
+            self.db.rollback()
+            raise
 
     def delete(self, obj: T) -> None:
-        """Remove o registro do contexto da sessão."""
-        self.db.delete(obj)
-        self.db.flush()
+        """Remove o registro do contexto da sessão e confirma a transação."""
+        try:
+            self.db.delete(obj)
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            raise

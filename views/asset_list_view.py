@@ -1,4 +1,5 @@
 import flet as ft
+import os
 from datetime import datetime, date
 from views.base_view import BaseView
 from controllers.asset_controller import AssetController
@@ -253,6 +254,11 @@ class AssetListView(BaseView):
                             on_click=lambda e: self._open_edit_dialog(asset)
                         ),
                         ft.IconButton(
+                            ft.Icons.QR_CODE_2_ROUNDED,
+                            tooltip="Gerar Etiqueta",
+                            on_click=lambda e: self._generate_label(asset.id)
+                        ),
+                        ft.IconButton(
                             ft.Icons.DELETE_OUTLINE_ROUNDED,
                             icon_color=ft.Colors.RED_400,
                             tooltip="Excluir Patrimônio (Erro de Cadastro)",
@@ -483,6 +489,17 @@ class AssetListView(BaseView):
             except RuntimeError:
                 pass
             self.refresh_table()
+        else:
+            show_error_snackbar(self.page, res)
+
+    def _generate_label(self, asset_id: int):
+        success, res = self.controller.generate_label(asset_id)
+        if success:
+            show_success_snackbar(self.page, f"Etiqueta gerada em: {res}")
+            try:
+                os.startfile(res)
+            except Exception:
+                pass
         else:
             show_error_snackbar(self.page, res)
 
