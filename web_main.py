@@ -19,6 +19,7 @@ from fastapi.responses import HTMLResponse
 
 from app import PatrimonioApp
 from config.database import SessionLocal
+from config.settings import BASE_DIR
 from repositories.asset_repository import AssetRepository
 from web.status_page import render_asset_status_html, render_not_found_html
 
@@ -45,7 +46,12 @@ app = ft.run(
     main,
     view=ft.AppView.WEB_BROWSER,
     export_asgi_app=True,
-    upload_dir="uploads",
+    # Precisa ser exatamente a mesma pasta que config.settings.BASE_DIR usa
+    # pra calcular LABELS_DIR/ATTACHMENTS_DIR -- senão o servidor escreve os
+    # arquivos gerados num caminho e serve os estáticos de outro (calculado
+    # a partir do cwd do processo), e o arquivo nunca é encontrado (404).
+    assets_dir=str(BASE_DIR / "assets"),
+    upload_dir=str(BASE_DIR / "uploads"),
 )
 
 

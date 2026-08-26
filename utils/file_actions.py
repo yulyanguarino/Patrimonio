@@ -21,9 +21,15 @@ def _get_file_url(page: ft.Page, path: str) -> Optional[str]:
     except ValueError:
         return None
 
+    # IMPORTANTE: o conteúdo de assets_dir é servido a partir da raiz do site
+    # (mapeado como se fosse o próprio "/"), não sob um prefixo "/assets/"
+    # como o nome sugere -- confirmado testando: <assets_dir>/labels/x.pdf
+    # fica em /labels/x.pdf, e /assets/labels/x.pdf dá 404.
+    url_path = rel.as_posix()
+
     public_base_url = os.getenv("PUBLIC_BASE_URL")
     if public_base_url:
-        return f"{public_base_url.rstrip('/')}/assets/{rel.as_posix()}"
+        return f"{public_base_url.rstrip('/')}/{url_path}"
 
     # Sem PUBLIC_BASE_URL configurado: monta a partir de page.url. Em apps
     # Flet web, page.url reflete o endpoint de WebSocket (wss://) usado pela
@@ -32,8 +38,8 @@ def _get_file_url(page: ft.Page, path: str) -> Optional[str]:
     origin = urlparse(page.url or "")
     scheme = _WS_TO_HTTP_SCHEME.get(origin.scheme, origin.scheme)
     if scheme and origin.netloc:
-        return f"{scheme}://{origin.netloc}/assets/{rel.as_posix()}"
-    return f"/assets/{rel.as_posix()}"
+        return f"{scheme}://{origin.netloc}/{url_path}"
+    return f"/{url_path}"
 
 
 async def reveal_file(
