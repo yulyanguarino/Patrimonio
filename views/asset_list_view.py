@@ -542,7 +542,7 @@ class AssetListView(BaseView):
         asset_id = e.control.data
         success, res = self.controller.generate_label(asset_id)
         if success:
-            await reveal_file(self.page, res, desktop_message=f"Etiqueta gerada em: {res}", web_message="Etiqueta gerada!")
+            await reveal_file(self.page, res, desktop_message=f"Etiqueta gerada em: {res}", web_title="Etiqueta gerada!")
         else:
             show_error_snackbar(self.page, res)
 

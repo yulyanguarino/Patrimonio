@@ -38,39 +38,54 @@ def show_success_snackbar(page: ft.Page, message: str):
     except RuntimeError:
         pass
 
-def show_open_link_snackbar(page: ft.Page, message: str, url: str):
+def show_open_link_dialog(page: ft.Page, title: str, url: str):
     """
-    Exibe uma mensagem com um link clicável pra abrir um arquivo na web.
+    Mostra um modal com o link de um arquivo gerado/anexado na web, pra o
+    usuário copiar e abrir numa aba.
 
-    Não abre a URL sozinho -- navegadores bloqueiam popups/abas abertas fora
-    de um clique direto do usuário (e essa chamada acontece depois de uma
-    ida-e-volta assíncrona ao servidor, então não conta como clique direto).
-    O botão "Abrir" é um link de verdade (atributo `url` do TextButton), então
-    o clique nele é reconhecido como ação do usuário e não é bloqueado.
+    Não tenta abrir a URL sozinho: em testes reais, tanto a abertura
+    automática quanto o botão nativo de link do Flet (`url=` do TextButton,
+    com ou sem `target`) fecham a aba assim que abrem -- comportamento
+    inconsistente e não confiável na versão de Flet em uso. Copiar pro
+    clipboard não depende de nenhuma dessas APIs de navegação, então é a
+    forma confiável de entregar o link nessa versão.
     """
     if not page:
         return
-    snack = ft.SnackBar(
-        content=ft.Row(
+
+    def close_dialog(e):
+        dialog.open = False
+        try:
+            page.update()
+        except RuntimeError:
+            pass
+
+    async def copy_link(e):
+        await page.clipboard.set(url)
+        show_success_snackbar(page, "Link copiado!")
+
+    dialog = ft.AlertDialog(
+        modal=True,
+        title=ft.Text(title, weight=ft.FontWeight.BOLD),
+        content=ft.Column(
             [
-                ft.Text(message, color=ft.Colors.WHITE),
-                ft.TextButton(
-                    "Abrir",
-                    url=ft.Url(url=url, target=ft.UrlTarget.SELF),
-                    style=ft.ButtonStyle(color=ft.Colors.WHITE),
-                ),
+                ft.Text("Copie o link abaixo e abra numa nova aba:", size=13),
+                ft.TextField(value=url, read_only=True, multiline=True, min_lines=1, max_lines=3, border_radius=8),
             ],
-            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+            spacing=10,
+            tight=True,
         ),
-        bgcolor=ft.Colors.GREEN_700,
-        behavior=ft.SnackBarBehavior.FLOATING,
-        dismiss_direction=ft.DismissDirection.DOWN,
-        duration=ft.Duration(seconds=10),
-        open=True
+        actions=[
+            ft.TextButton("Fechar", on_click=close_dialog),
+            ft.ElevatedButton("Copiar Link", icon=ft.Icons.COPY_ROUNDED, on_click=copy_link, bgcolor=ft.Colors.BLUE_400, color=ft.Colors.WHITE),
+        ],
+        actions_alignment=ft.MainAxisAlignment.END,
     )
-    if snack not in page.overlay:
-        page.overlay.append(snack)
-    page.snack_bar = snack
+
+    if dialog not in page.overlay:
+        page.overlay.append(dialog)
+    page.dialog = dialog
+    dialog.open = True
     try:
         page.update()
     except RuntimeError:

@@ -384,7 +384,7 @@ class AssetDetailView(BaseView):
 
     async def _open_file(self, e):
         path = e.control.data
-        if not await reveal_file(self.page, path, web_message="Anexo pronto!"):
+        if not await reveal_file(self.page, path, web_title="Anexo pronto!"):
             show_error_snackbar(self.page, "Arquivo físico não foi localizado no disco.")
 
     def _confirm_delete_attachment(self, attachment_id: int):
@@ -406,7 +406,7 @@ class AssetDetailView(BaseView):
     async def _on_generate_label(self, e):
         success, res = self.controller.generate_label(self.asset_id)
         if success:
-            await reveal_file(self.page, res, desktop_message=f"Etiqueta gerada em: {res}", web_message="Etiqueta gerada!")
+            await reveal_file(self.page, res, desktop_message=f"Etiqueta gerada em: {res}", web_title="Etiqueta gerada!")
         else:
             show_error_snackbar(self.page, res)
 
