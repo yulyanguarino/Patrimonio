@@ -10,9 +10,7 @@ from components.custom_table import CustomTable
 from components.dialogs import show_success_snackbar, show_error_snackbar, show_confirm_dialog
 from utils.uploads import resolve_picked_file
 from utils.file_actions import reveal_file
-from services.inventory_import_service import parse_inventory_csv, build_asset_name, build_observacoes
-
-INVENTORY_CATEGORIES = {"Notebook", "Computador"}
+from services.inventory_import_service import parse_inventory_csv, build_asset_name, build_observacoes, INVENTORY_CATEGORIES
 
 class AssetListView(BaseView):
     def __init__(self, page: ft.Page, db, navigate_to, **kwargs):

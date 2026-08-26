@@ -3,6 +3,7 @@
 Compartilhado entre o servidor local do modo desktop (web/status_server.py)
 e a rota pública exposta quando o app roda hospedado (web_main.py).
 """
+from services.inventory_import_service import INVENTORY_CATEGORIES
 
 STATUS_COLORS = {
     "Disponível": "#4CAF50",
@@ -34,6 +35,7 @@ h2{{font-size:16px;margin:22px 0 10px}}
 .tipo-corretiva{{background:#b26a00}} .tipo-preventiva{{background:#1565c0}}
 .maint .data{{float:right;font-size:12px;color:#aaa}}
 .empty{{font-style:italic;color:#999;font-size:14px}}
+.tech{{white-space:pre-line;font-size:13px;line-height:1.6}}
 </style></head><body>
 <h1>[{asset.numero_patrimonial}] {asset.nome}</h1>
 <span class="badge">{asset.status}</span>
@@ -43,9 +45,18 @@ h2{{font-size:16px;margin:22px 0 10px}}
 <p><b>Responsável:</b> {asset.employee.nome if asset.employee else 'Nenhum'}</p>
 <p><b>Última atualização:</b> {atualizado}</p>
 </div>
+{_render_technical_info_html(asset)}
 <h2>Histórico de Manutenções</h2>
 {_render_maintenances_html(asset.maintenances)}
 </body></html>"""
+
+
+def _render_technical_info_html(asset) -> str:
+    category_name = asset.category.nome if asset.category else None
+    if category_name not in INVENTORY_CATEGORIES or not asset.observacoes:
+        return ""
+    return f"""<h2>Informações Técnicas</h2>
+<div class="card"><p class="tech">{asset.observacoes}</p></div>"""
 
 
 def _render_maintenances_html(maintenances) -> str:

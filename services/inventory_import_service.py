@@ -5,6 +5,10 @@ usados no cadastro de patrimônio (Notebook/Computador).
 """
 import csv
 
+# Categorias que recebem o fluxo de importação de inventário (upload no
+# cadastro, e exibição das informações técnicas na página pública do QR Code).
+INVENTORY_CATEGORIES = {"Notebook", "Computador"}
+
 FIELD_LABELS = {
     "Nome_Computador": "Nome do Computador",
     "Usuario": "Usuário",
