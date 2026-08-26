@@ -56,7 +56,7 @@ def show_open_link_snackbar(page: ft.Page, message: str, url: str):
                 ft.Text(message, color=ft.Colors.WHITE),
                 ft.TextButton(
                     "Abrir",
-                    url=url,
+                    url=ft.Url(url=url, target=ft.UrlTarget.SELF),
                     style=ft.ButtonStyle(color=ft.Colors.WHITE),
                 ),
             ],
