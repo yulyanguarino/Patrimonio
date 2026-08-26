@@ -9,7 +9,7 @@ from controllers.employee_controller import EmployeeController
 from components.custom_table import CustomTable
 from components.dialogs import show_success_snackbar, show_error_snackbar, show_confirm_dialog
 from utils.uploads import resolve_picked_file
-from utils.file_actions import open_file
+from utils.file_actions import reveal_file
 
 class AssetListView(BaseView):
     def __init__(self, page: ft.Page, db, navigate_to, **kwargs):
@@ -542,8 +542,7 @@ class AssetListView(BaseView):
         asset_id = e.control.data
         success, res = self.controller.generate_label(asset_id)
         if success:
-            show_success_snackbar(self.page, f"Etiqueta gerada em: {res}")
-            await open_file(self.page, res)
+            await reveal_file(self.page, res, desktop_message=f"Etiqueta gerada em: {res}", web_message="Etiqueta gerada!")
         else:
             show_error_snackbar(self.page, res)
 

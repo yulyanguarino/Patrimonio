@@ -38,6 +38,45 @@ def show_success_snackbar(page: ft.Page, message: str):
     except RuntimeError:
         pass
 
+def show_open_link_snackbar(page: ft.Page, message: str, url: str):
+    """
+    Exibe uma mensagem com um link clicável pra abrir um arquivo na web.
+
+    Não abre a URL sozinho -- navegadores bloqueiam popups/abas abertas fora
+    de um clique direto do usuário (e essa chamada acontece depois de uma
+    ida-e-volta assíncrona ao servidor, então não conta como clique direto).
+    O botão "Abrir" é um link de verdade (atributo `url` do TextButton), então
+    o clique nele é reconhecido como ação do usuário e não é bloqueado.
+    """
+    if not page:
+        return
+    snack = ft.SnackBar(
+        content=ft.Row(
+            [
+                ft.Text(message, color=ft.Colors.WHITE),
+                ft.TextButton(
+                    "Abrir",
+                    url=url,
+                    url_target=ft.UrlTarget.BLANK,
+                    style=ft.ButtonStyle(color=ft.Colors.WHITE),
+                ),
+            ],
+            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+        ),
+        bgcolor=ft.Colors.GREEN_700,
+        behavior=ft.SnackBarBehavior.FLOATING,
+        dismiss_direction=ft.DismissDirection.DOWN,
+        duration=ft.Duration(seconds=10),
+        open=True
+    )
+    if snack not in page.overlay:
+        page.overlay.append(snack)
+    page.snack_bar = snack
+    try:
+        page.update()
+    except RuntimeError:
+        pass
+
 def show_confirm_dialog(page: ft.Page, title: str, message: str, on_confirm) -> ft.AlertDialog:
     """Apresenta um modal de confirmação (Sim/Não)."""
     if not page:

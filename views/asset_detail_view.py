@@ -6,7 +6,7 @@ from controllers.asset_controller import AssetController
 from controllers.maintenance_controller import MaintenanceController
 from components.file_uploader import FileUploader
 from components.dialogs import show_success_snackbar, show_error_snackbar, show_confirm_dialog, show_info_dialog
-from utils.file_actions import open_file
+from utils.file_actions import reveal_file
 
 class AssetDetailView(BaseView):
     def __init__(self, page: ft.Page, db, navigate_to, asset_id: int = None, **kwargs):
@@ -384,7 +384,7 @@ class AssetDetailView(BaseView):
 
     async def _open_file(self, e):
         path = e.control.data
-        if not await open_file(self.page, path):
+        if not await reveal_file(self.page, path, web_message="Anexo pronto!"):
             show_error_snackbar(self.page, "Arquivo físico não foi localizado no disco.")
 
     def _confirm_delete_attachment(self, attachment_id: int):
@@ -406,8 +406,7 @@ class AssetDetailView(BaseView):
     async def _on_generate_label(self, e):
         success, res = self.controller.generate_label(self.asset_id)
         if success:
-            show_success_snackbar(self.page, f"Etiqueta gerada em: {res}")
-            await open_file(self.page, res)
+            await reveal_file(self.page, res, desktop_message=f"Etiqueta gerada em: {res}", web_message="Etiqueta gerada!")
         else:
             show_error_snackbar(self.page, res)
 
