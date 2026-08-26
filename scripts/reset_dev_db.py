@@ -8,10 +8,16 @@ Uso:
     python scripts/reset_dev_db.py
 """
 import os
+import sys
 from pathlib import Path
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+# Rodar "python scripts/reset_dev_db.py" direto (sem -m) não coloca a raiz do
+# projeto no sys.path -- sem isso, "from config.database import ..." falha
+# com ModuleNotFoundError. Isso garante que funciona dos dois jeitos.
+sys.path.insert(0, str(BASE_DIR))
+
 load_dotenv(BASE_DIR / ".env")
 os.environ["DATABASE_URL"] = os.environ["NEON_DEV_DATABASE_URL"]
 
