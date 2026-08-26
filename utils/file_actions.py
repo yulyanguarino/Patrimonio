@@ -8,7 +8,7 @@ from config.settings import BASE_DIR
 _ASSETS_DIR = (BASE_DIR / "assets").resolve()
 
 
-def open_file(page: ft.Page, path: str) -> bool:
+async def open_file(page: ft.Page, path: str) -> bool:
     """
     Abre um arquivo pro usuário ver.
 
@@ -25,7 +25,7 @@ def open_file(page: ft.Page, path: str) -> bool:
             rel = Path(path).resolve().relative_to(_ASSETS_DIR)
         except ValueError:
             return False
-        page.launch_url(f"/assets/{rel.as_posix()}")
+        await page.launch_url(f"/assets/{rel.as_posix()}")
         return True
 
     os.startfile(path)

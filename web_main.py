@@ -12,6 +12,7 @@ Diferenças em relação ao modo desktop:
   Code das etiquetas -- ver LabelService/PUBLIC_BASE_URL.
 """
 import os
+import secrets
 
 import flet as ft
 from fastapi.responses import HTMLResponse
@@ -20,6 +21,11 @@ from app import PatrimonioApp
 from config.database import SessionLocal
 from repositories.asset_repository import AssetRepository
 from web.status_page import render_asset_status_html, render_not_found_html
+
+# Chave usada pelo Flet pra assinar as URLs de upload (anexos/nota fiscal).
+# Se já vier definida via env var (ex: configurada no Render), usa a mesma
+# em todas as instâncias/reinícios; senão, gera uma aleatória neste processo.
+os.environ.setdefault("FLET_SECRET_KEY", secrets.token_hex(32))
 
 
 def main(page: ft.Page):

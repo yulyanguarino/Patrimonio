@@ -267,7 +267,8 @@ class AssetListView(BaseView):
                         ft.IconButton(
                             ft.Icons.QR_CODE_2_ROUNDED,
                             tooltip="Gerar Etiqueta",
-                            on_click=lambda e: self._generate_label(asset.id)
+                            data=asset.id,
+                            on_click=self._generate_label
                         ),
                         ft.IconButton(
                             ft.Icons.DELETE_OUTLINE_ROUNDED,
@@ -537,11 +538,12 @@ class AssetListView(BaseView):
         else:
             show_error_snackbar(self.page, res)
 
-    def _generate_label(self, asset_id: int):
+    async def _generate_label(self, e):
+        asset_id = e.control.data
         success, res = self.controller.generate_label(asset_id)
         if success:
             show_success_snackbar(self.page, f"Etiqueta gerada em: {res}")
-            open_file(self.page, res)
+            await open_file(self.page, res)
         else:
             show_error_snackbar(self.page, res)
 

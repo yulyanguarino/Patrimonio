@@ -366,7 +366,8 @@ class AssetDetailView(BaseView):
                 ft.IconButton(
                     ft.Icons.OPEN_IN_NEW_ROUNDED,
                     tooltip="Abrir Documento",
-                    on_click=lambda _: self._open_file(attachment.caminho_local)
+                    data=attachment.caminho_local,
+                    on_click=self._open_file
                 ),
                 ft.IconButton(
                     ft.Icons.DELETE_OUTLINE_ROUNDED,
@@ -381,8 +382,9 @@ class AssetDetailView(BaseView):
             border_radius=8
         )
 
-    def _open_file(self, path):
-        if not open_file(self.page, path):
+    async def _open_file(self, e):
+        path = e.control.data
+        if not await open_file(self.page, path):
             show_error_snackbar(self.page, "Arquivo físico não foi localizado no disco.")
 
     def _confirm_delete_attachment(self, attachment_id: int):
@@ -401,11 +403,11 @@ class AssetDetailView(BaseView):
         else:
             show_error_snackbar(self.page, message)
 
-    def _on_generate_label(self, e):
+    async def _on_generate_label(self, e):
         success, res = self.controller.generate_label(self.asset_id)
         if success:
             show_success_snackbar(self.page, f"Etiqueta gerada em: {res}")
-            open_file(self.page, res)
+            await open_file(self.page, res)
         else:
             show_error_snackbar(self.page, res)
 
