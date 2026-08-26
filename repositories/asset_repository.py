@@ -42,8 +42,24 @@ class AssetRepository(BaseRepository[Asset]):
         from models.sector import Sector
         from models.employee import Employee
         from sqlalchemy import or_, func
+        from sqlalchemy.orm import contains_eager
 
-        q = self.db.query(Asset).outerjoin(Asset.category).outerjoin(Asset.sector).outerjoin(Asset.employee)
+        # contains_eager reaproveita os outerjoins abaixo (já necessários pra
+        # busca textual) pra também popular category/sector/employee numa
+        # única consulta -- sem isso, cada asset.category/sector/employee
+        # acessado na tela dispara uma query própria (N+1), lento contra o
+        # Neon remoto.
+        q = (
+            self.db.query(Asset)
+            .outerjoin(Asset.category)
+            .outerjoin(Asset.sector)
+            .outerjoin(Asset.employee)
+            .options(
+                contains_eager(Asset.category),
+                contains_eager(Asset.sector),
+                contains_eager(Asset.employee),
+            )
+        )
         
         if query_text:
             clean_query = query_text.strip().lower()

@@ -1,6 +1,6 @@
 from typing import List
 from datetime import date
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from models.maintenance import Maintenance
 from repositories.base_repository import BaseRepository
 
@@ -28,8 +28,10 @@ class MaintenanceRepository(BaseRepository[Maintenance]):
         Filtra o histórico global ou individual de manutenções por período e tipo 
         (Preventiva ou Corretiva).
         """
-        q = self.db.query(Maintenance)
-        
+        # joinedload evita N+1: a tela lista várias manutenções e acessa
+        # maint.asset em cada linha -- sem isso, cada acesso é uma query própria.
+        q = self.db.query(Maintenance).options(joinedload(Maintenance.asset))
+
         if asset_id is not None:
             q = q.filter(Maintenance.patrimonio_id == asset_id)
             

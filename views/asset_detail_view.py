@@ -309,7 +309,7 @@ class AssetDetailView(BaseView):
             pass
         
         # Atualiza anexos
-        self.refresh_attachments(asset.attachments)
+        self.refresh_attachments(asset.attachments, is_baixado=(asset.status == "Baixado"))
         
         # Atualiza manutenções
         self.refresh_maintenances(asset.maintenances)
@@ -336,7 +336,7 @@ class AssetDetailView(BaseView):
     def _show_full_text(self, title: str, text: str):
         show_info_dialog(self.page, title, text)
 
-    def refresh_attachments(self, attachments):
+    def refresh_attachments(self, attachments, is_baixado: bool = False):
         self.attachments_list.controls.clear()
         if not attachments:
             self.attachments_list.controls.append(
@@ -344,13 +344,13 @@ class AssetDetailView(BaseView):
             )
         else:
             for att in attachments:
-                self.attachments_list.controls.append(self._build_attachment_row(att))
+                self.attachments_list.controls.append(self._build_attachment_row(att, is_baixado))
         try:
             self.attachments_list.update()
         except RuntimeError:
             pass
 
-    def _build_attachment_row(self, attachment):
+    def _build_attachment_row(self, attachment, is_baixado: bool):
         # Determina ícone pelo tipo do arquivo
         ext = os.path.splitext(attachment.nome_arquivo)[1].lower()
         if ext in (".jpg", ".jpeg", ".png", ".webp"):
@@ -362,9 +362,6 @@ class AssetDetailView(BaseView):
         else:
             icon = ft.Icons.INSERT_DRIVE_FILE_ROUNDED
             color = ft.Colors.GREY_400
-
-        asset = self.controller.get_asset(self.asset_id)
-        is_baixado = asset and asset.status == "Baixado"
 
         return ft.Container(
             content=ft.Row([
