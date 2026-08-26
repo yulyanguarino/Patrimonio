@@ -11,15 +11,28 @@ from components.dialogs import show_success_snackbar, show_open_link_dialog
 _ASSETS_DIR = (BASE_DIR / "assets").resolve()
 
 
+_WS_TO_HTTP_SCHEME = {"wss": "https", "ws": "http"}
+
+
 def _get_file_url(page: ft.Page, path: str) -> Optional[str]:
     """URL pública absoluta de um arquivo salvo dentro da pasta assets/, ou None."""
     try:
         rel = Path(path).resolve().relative_to(_ASSETS_DIR)
     except ValueError:
         return None
+
+    public_base_url = os.getenv("PUBLIC_BASE_URL")
+    if public_base_url:
+        return f"{public_base_url.rstrip('/')}/assets/{rel.as_posix()}"
+
+    # Sem PUBLIC_BASE_URL configurado: monta a partir de page.url. Em apps
+    # Flet web, page.url reflete o endpoint de WebSocket (wss://) usado pela
+    # conexão da sessão, não a URL http(s) real da página -- por isso troca
+    # o esquema antes de usar, senão o navegador recusa (ERR_UNKNOWN_URL_SCHEME).
     origin = urlparse(page.url or "")
-    if origin.scheme and origin.netloc:
-        return f"{origin.scheme}://{origin.netloc}/assets/{rel.as_posix()}"
+    scheme = _WS_TO_HTTP_SCHEME.get(origin.scheme, origin.scheme)
+    if scheme and origin.netloc:
+        return f"{scheme}://{origin.netloc}/assets/{rel.as_posix()}"
     return f"/assets/{rel.as_posix()}"
 
 
