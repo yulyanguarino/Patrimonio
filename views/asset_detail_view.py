@@ -277,7 +277,10 @@ class AssetDetailView(BaseView):
             self._build_info_card("Data de Compra", asset.data_compra.strftime("%d/%m/%Y") if asset.data_compra else "-", ft.Icons.CALENDAR_MONTH_ROUNDED, ft.Colors.GREEN_200),
             self._build_info_card("Garantia", f"{asset.garantia_meses} meses" if asset.garantia_meses else "-", ft.Icons.SHIELD_ROUNDED, ft.Colors.GREEN_200),
             self._build_info_card("Nota Fiscal", asset.nota_fiscal or "-", ft.Icons.RECEIPT_ROUNDED, ft.Colors.GREY_400),
-            self._build_info_card("Observações", asset.observacoes or "-", ft.Icons.NOTE_ROUNDED, ft.Colors.GREY_400),
+            self._build_info_card(
+                "Observações", asset.observacoes or "-", ft.Icons.NOTE_ROUNDED, ft.Colors.GREY_400,
+                on_click=(lambda e, texto=asset.observacoes: self._show_full_text("Observações", texto)) if asset.observacoes else None
+            ),
         ]
         
         # Desabilita botões de manutenção caso o patrimônio esteja baixado
@@ -311,20 +314,27 @@ class AssetDetailView(BaseView):
         # Atualiza manutenções
         self.refresh_maintenances(asset.maintenances)
 
-    def _build_info_card(self, title: str, value: str, icon: str, icon_color: str):
+    def _build_info_card(self, title: str, value: str, icon: str, icon_color: str, on_click=None):
         return ft.Container(
             content=ft.Row([
                 ft.Icon(icon, color=icon_color, size=22),
                 ft.Column([
                     ft.Text(title, size=11, color=ft.Colors.ON_SURFACE_VARIANT, weight=ft.FontWeight.W_500),
                     ft.Text(value, size=14, weight=ft.FontWeight.BOLD, max_lines=2, overflow=ft.TextOverflow.ELLIPSIS),
-                ], spacing=1, expand=True)
+                ], spacing=1, expand=True),
+                ft.Icon(ft.Icons.OPEN_IN_FULL_ROUNDED, size=14, color=ft.Colors.ON_SURFACE_VARIANT) if on_click else ft.Container(),
             ], alignment=ft.MainAxisAlignment.START, vertical_alignment=ft.CrossAxisAlignment.CENTER),
             padding=ft.Padding.symmetric(horizontal=15, vertical=10),
             bgcolor=ft.Colors.SURFACE_CONTAINER_LOW,
             border_radius=8,
-            border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT)
+            border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT),
+            on_click=on_click,
+            ink=bool(on_click),
+            tooltip="Clique para ver o texto completo" if on_click else None,
         )
+
+    def _show_full_text(self, title: str, text: str):
+        show_info_dialog(self.page, title, text)
 
     def refresh_attachments(self, attachments):
         self.attachments_list.controls.clear()

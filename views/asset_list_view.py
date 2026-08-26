@@ -343,7 +343,10 @@ class AssetListView(BaseView):
             return
 
         self.selected_inventory_path = path
-        self.form_nome.value = build_asset_name(data)
+        # Só preenche o nome se o campo ainda estiver vazio -- não sobrescreve
+        # silenciosamente o que a pessoa já digitou.
+        if not self.form_nome.value or not self.form_nome.value.strip():
+            self.form_nome.value = build_asset_name(data)
         self.form_obs.value = build_observacoes(data)
         self.inventory_file_text.value = files[0].name
         self.inventory_file_text.italic = False

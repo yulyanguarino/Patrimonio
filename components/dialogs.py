@@ -146,13 +146,17 @@ def show_info_dialog(page: ft.Page, title: str, message: str) -> ft.AlertDialog:
 
     dialog = ft.AlertDialog(
         title=ft.Text(title, weight=ft.FontWeight.BOLD),
-        content=ft.Text(message),
+        content=ft.Container(
+            content=ft.Column([ft.Text(message, selectable=True)], scroll=ft.ScrollMode.AUTO),
+            width=480,
+            height=400,
+        ),
         actions=[
             ft.TextButton("Fechar", on_click=close_dialog),
         ],
         actions_alignment=ft.MainAxisAlignment.END,
     )
-    
+
     if dialog not in page.overlay:
         page.overlay.append(dialog)
     page.dialog = dialog
