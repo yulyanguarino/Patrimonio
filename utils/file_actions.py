@@ -47,8 +47,10 @@ async def reveal_file(
     anexo aberto).
 
     No desktop, abre direto com o programa padrão do sistema operacional. Na
-    web, mostra um modal com o link pra copiar (ver show_open_link_dialog --
-    tentar abrir automaticamente não é confiável nessa versão do Flet).
+    web, tenta abrir automaticamente numa nova aba via page.launch_url --
+    precisa ser uma URL absoluta (com https://) pra funcionar; um link
+    relativo falha silenciosamente. Se não conseguir abrir sozinho (navegador
+    bloquear mesmo assim), cai no modal de copiar link como alternativa.
     Retorna False se o arquivo não existir ou (na web) não estiver dentro da
     pasta assets/ (a única servida publicamente).
     """
@@ -59,7 +61,10 @@ async def reveal_file(
         url = _get_file_url(page, path)
         if not url:
             return False
-        show_open_link_dialog(page, web_title, url)
+        try:
+            await page.launch_url(url)
+        except Exception:
+            show_open_link_dialog(page, web_title, url)
     else:
         if desktop_message:
             show_success_snackbar(page, desktop_message)
