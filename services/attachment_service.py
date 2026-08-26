@@ -45,7 +45,7 @@ class AttachmentService:
             raise BusinessRuleException(f"O arquivo físico de origem '{source_path}' não foi localizado.")
 
         # Validação do tipo de documento
-        valid_types = {"Foto", "Nota Fiscal", "Manual", "Garantia", "Outros"}
+        valid_types = {"Foto", "Nota Fiscal", "Manual", "Garantia", "Inventário", "Outros"}
         if tipo_documento not in valid_types:
             raise BusinessRuleException(f"Tipo de documento '{tipo_documento}' é inválido.")
 

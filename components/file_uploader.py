@@ -32,6 +32,7 @@ class FileUploader(ft.Container):
                 ft.dropdown.Option("Nota Fiscal"),
                 ft.dropdown.Option("Manual"),
                 ft.dropdown.Option("Garantia"),
+                ft.dropdown.Option("Inventário"),
                 ft.dropdown.Option("Outros"),
             ],
             value="Nota Fiscal",

@@ -10,6 +10,9 @@ from components.custom_table import CustomTable
 from components.dialogs import show_success_snackbar, show_error_snackbar, show_confirm_dialog
 from utils.uploads import resolve_picked_file
 from utils.file_actions import reveal_file
+from services.inventory_import_service import parse_inventory_csv, build_asset_name, build_observacoes
+
+INVENTORY_CATEGORIES = {"Notebook", "Computador"}
 
 class AssetListView(BaseView):
     def __init__(self, page: ft.Page, db, navigate_to, **kwargs):
@@ -117,7 +120,8 @@ class AssetListView(BaseView):
         
         # Campos do Formulário Modal (Criar/Editar)
         self.form_nome = ft.TextField(label="Nome do Patrimônio*", border_radius=8)
-        self.form_category = ft.Dropdown(label="Categoria*", hint_text="Selecione a Categoria", border_radius=8, expand=True)
+        self.form_category = ft.Dropdown(label="Categoria*", hint_text="Selecione a Categoria", on_select=self._on_form_category_change, border_radius=8, expand=True)
+        self._category_names_by_id = {}
         self.form_sector = ft.Dropdown(label="Setor*", hint_text="Selecione o Setor", border_radius=8, expand=True)
         self.form_status = ft.Dropdown(
             label="Status*",
@@ -141,6 +145,20 @@ class AssetListView(BaseView):
             ft.Icons.ATTACH_FILE_ROUNDED,
             tooltip="Anexar Nota Fiscal (PDF ou imagem, opcional)",
             on_click=self._on_pick_nf_file
+        )
+        self.selected_inventory_path = None
+        self.inventory_file_picker = ft.FilePicker()
+        self.inventory_file_text = ft.Text("Nenhum arquivo importado", size=12, italic=True, color=ft.Colors.ON_SURFACE_VARIANT)
+        self.inventory_upload_btn = ft.OutlinedButton(
+            "Importar Inventário (CSV)",
+            icon=ft.Icons.UPLOAD_FILE_ROUNDED,
+            on_click=self._on_pick_inventory_file
+        )
+        self.inventory_row = ft.Row(
+            [self.inventory_upload_btn, self.inventory_file_text],
+            spacing=10,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            visible=False
         )
         self.form_garantia = ft.TextField(label="Garantia (Meses)", keyboard_type=ft.KeyboardType.NUMBER, border_radius=8)
         self.form_obs = ft.TextField(label="Observações", multiline=True, min_lines=2, max_lines=4, border_radius=8)
@@ -181,6 +199,7 @@ class AssetListView(BaseView):
             pass
         
         # Popula campos do modal
+        self._category_names_by_id = {str(c.id): c.nome for c in categories}
         self.form_category.options = [ft.dropdown.Option(str(c.id), c.nome) for c in categories]
         self.form_sector.options = [ft.dropdown.Option(str(s.id), s.nome) for s in sectors]
         self.form_employee.options = [ft.dropdown.Option(str(e.id), e.nome) for e in employees]
@@ -297,6 +316,53 @@ class AssetListView(BaseView):
             except RuntimeError:
                 pass
 
+    def _on_form_category_change(self, e):
+        category_name = self._category_names_by_id.get(self.form_category.value)
+        self.inventory_row.visible = category_name in INVENTORY_CATEGORIES
+        if not self.inventory_row.visible:
+            self._reset_inventory_upload()
+        try:
+            self.inventory_row.update()
+        except RuntimeError:
+            pass
+
+    async def _on_pick_inventory_file(self, e):
+        files = await self.inventory_file_picker.pick_files(
+            allow_multiple=False,
+            dialog_title="Selecione o CSV de inventário",
+            file_type=ft.FilePickerFileType.CUSTOM,
+            allowed_extensions=["csv"]
+        )
+        if not files:
+            return
+        path = await resolve_picked_file(self.page, self.inventory_file_picker, files[0])
+        try:
+            data = parse_inventory_csv(path)
+        except Exception as ex:
+            show_error_snackbar(self.page, f"Não foi possível ler o CSV: {ex}")
+            return
+
+        self.selected_inventory_path = path
+        self.form_nome.value = build_asset_name(data)
+        self.form_obs.value = build_observacoes(data)
+        self.inventory_file_text.value = files[0].name
+        self.inventory_file_text.italic = False
+        self.inventory_file_text.weight = ft.FontWeight.BOLD
+        self.inventory_file_text.color = ft.Colors.ON_SURFACE
+        try:
+            self.form_nome.update()
+            self.form_obs.update()
+            self.inventory_file_text.update()
+        except RuntimeError:
+            pass
+
+    def _reset_inventory_upload(self):
+        self.selected_inventory_path = None
+        self.inventory_file_text.value = "Nenhum arquivo importado"
+        self.inventory_file_text.italic = True
+        self.inventory_file_text.weight = None
+        self.inventory_file_text.color = ft.Colors.ON_SURFACE_VARIANT
+
     def _on_form_status_change(self, e):
         self.form_employee.visible = (self.form_status.value == "Em uso")
         try:
@@ -337,6 +403,8 @@ class AssetListView(BaseView):
         self.date_text.value = "Nenhuma data selecionada"
         self.date_text.italic = True
         self._reset_nf_upload()
+        self._reset_inventory_upload()
+        self.inventory_row.visible = False
 
         self._show_form_modal("Cadastrar Patrimônio")
 
@@ -379,6 +447,8 @@ class AssetListView(BaseView):
             self.date_text.value = "Nenhuma data selecionada"
             self.date_text.italic = True
         self._reset_nf_upload()
+        self._reset_inventory_upload()
+        self.inventory_row.visible = self._category_names_by_id.get(self.form_category.value) in INVENTORY_CATEGORIES
 
         self._show_form_modal(f"Editar Patrimônio - {asset.numero_patrimonial}")
 
@@ -411,6 +481,7 @@ class AssetListView(BaseView):
                     ], spacing=10, vertical_alignment=ft.CrossAxisAlignment.CENTER),
                     ft.Row([self.form_nf, self.nf_upload_btn], spacing=5, vertical_alignment=ft.CrossAxisAlignment.CENTER),
                     self.nf_file_text,
+                    self.inventory_row,
                     self.form_garantia,
                     self.form_obs,
                 ], spacing=12, scroll=ft.ScrollMode.AUTO),
@@ -528,6 +599,14 @@ class AssetListView(BaseView):
                 )
                 if not att_success:
                     show_error_snackbar(self.page, f"Patrimônio salvo, mas falhou ao anexar a nota fiscal: {att_res}")
+            if self.selected_inventory_path:
+                att_success, att_res = self.controller.add_attachment(
+                    source_path=self.selected_inventory_path,
+                    tipo_documento="Inventário",
+                    asset_id=res.id
+                )
+                if not att_success:
+                    show_error_snackbar(self.page, f"Patrimônio salvo, mas falhou ao anexar o inventário: {att_res}")
             show_success_snackbar(self.page, "Patrimônio salvo com sucesso!")
             dialog.open = False
             try:

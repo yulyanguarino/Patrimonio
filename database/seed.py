@@ -18,6 +18,7 @@ def seed_db():
     # Categorias sugeridas
     default_categories = [
         "Notebook",
+        "Computador",
         "Monitor",
         "Impressora",
         "Mesa",
