@@ -1,3 +1,5 @@
+import threading
+
 import flet as ft
 from app import PatrimonioApp
 
@@ -15,10 +17,18 @@ def main(page: ft.Page):
     # Instancia a aplicação patrimonial
     app = PatrimonioApp(page)
 
-    # Gerenciador de fechamento seguro para liberar a conexão com o PostgreSQL
+    # Gerenciador de fechamento: a janela precisa fechar na hora, mesmo que
+    # liberar os recursos (banco remoto, servidor local) demore ou trave --
+    # por isso a limpeza roda em segundo plano, sem segurar o destroy().
     def on_window_event(e):
         if e.data == "close":
-            app.close()
+            def cleanup():
+                try:
+                    app.close()
+                except Exception as ex:
+                    print(f"[Fechamento] Erro ao liberar recursos: {ex}")
+
+            threading.Thread(target=cleanup, daemon=True).start()
             page.window.destroy()
 
     page.window.prevent_close = True
