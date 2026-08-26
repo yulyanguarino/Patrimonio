@@ -29,19 +29,38 @@ class LabelService:
         self.asset_repo = AssetRepository(db)
 
     def generate_label(self, asset_id: int) -> str:
+        """Gera o PDF de etiqueta de um único patrimônio (comportamento original, inalterado)."""
         asset = self.asset_repo.get_by_id(asset_id)
         if not asset:
             raise BusinessRuleException("Patrimônio não encontrado.")
 
+        output_path = LABELS_DIR / f"{asset.numero_patrimonial}_etiqueta.pdf"
+        c = canvas.Canvas(str(output_path), pagesize=(LABEL_WIDTH_MM * mm, LABEL_HEIGHT_MM * mm))
+        self._draw_label(c, asset)
+        c.save()
+        return str(output_path)
+
+    def generate_labels_bulk(self, asset_ids: list[int]) -> str:
+        """Gera um único PDF com uma etiqueta por página, para imprimir vários de uma vez."""
+        assets = [self.asset_repo.get_by_id(asset_id) for asset_id in asset_ids]
+        assets = [a for a in assets if a]
+        if not assets:
+            raise BusinessRuleException("Nenhum patrimônio encontrado para gerar etiquetas.")
+
+        output_path = LABELS_DIR / "etiquetas_lote.pdf"
+        c = canvas.Canvas(str(output_path), pagesize=(LABEL_WIDTH_MM * mm, LABEL_HEIGHT_MM * mm))
+        for asset in assets:
+            self._draw_label(c, asset)
+        c.save()
+        return str(output_path)
+
+    def _draw_label(self, c: canvas.Canvas, asset) -> None:
+        """Desenha uma etiqueta na página atual do canvas e fecha a página (showPage)."""
         url = self._build_status_url(asset.numero_patrimonial)
         qr_img = qrcode.make(url, box_size=10, border=1)
         qr_buffer = io.BytesIO()
         qr_img.save(qr_buffer, format="PNG")
         qr_buffer.seek(0)
-
-        output_path = LABELS_DIR / f"{asset.numero_patrimonial}_etiqueta.pdf"
-
-        c = canvas.Canvas(str(output_path), pagesize=(LABEL_WIDTH_MM * mm, LABEL_HEIGHT_MM * mm))
 
         qr_reader = ImageReader(qr_buffer)
         qr_y = (LABEL_HEIGHT_MM - QR_SIZE_MM) / 2 * mm
@@ -55,8 +74,6 @@ class LabelService:
         c.drawString(text_x, (LABEL_HEIGHT_MM - 16) * mm, asset.numero_patrimonial)
 
         c.showPage()
-        c.save()
-        return str(output_path)
 
     def _build_status_url(self, numero_patrimonial: str) -> str:
         public_base_url = os.getenv("PUBLIC_BASE_URL")

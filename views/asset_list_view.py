@@ -87,12 +87,20 @@ class AssetListView(BaseView):
                 color=ft.Colors.WHITE
             )
         )
-        
+
+        self.bulk_label_btn = ft.OutlinedButton(
+            "Gerar Todas as Etiquetas",
+            icon=ft.Icons.QR_CODE_2_ROUNDED,
+            tooltip="Gera um único PDF com a etiqueta de cada patrimônio da lista atual (respeitando os filtros)",
+            on_click=self._generate_all_labels,
+        )
+
         self.filter_row = ft.Row([
             self.search_field,
             self.filter_category,
             self.filter_sector,
             self.filter_status,
+            self.bulk_label_btn,
             self.new_asset_btn
         ], spacing=10, vertical_alignment=ft.CrossAxisAlignment.CENTER)
         
@@ -202,21 +210,40 @@ class AssetListView(BaseView):
         self.form_sector.options = [ft.dropdown.Option(str(s.id), s.nome) for s in sectors]
         self.form_employee.options = [ft.dropdown.Option(str(e.id), e.nome) for e in employees]
 
-    def refresh_table(self):
+    def _get_filtered_assets(self):
+        """Busca os patrimônios respeitando os filtros/pesquisa atuais da tela."""
         raw_query = self.search_field.value.strip() if self.search_field.value else ""
         query = raw_query if raw_query else None
-        
+
         cat_val = self.filter_category.value
         cat_id = int(cat_val) if (cat_val and cat_val != "") else None
-        
+
         sec_val = self.filter_sector.value
         sec_id = int(sec_val) if (sec_val and sec_val != "") else None
-        
+
         stat_val = self.filter_status.value
         status = stat_val if (stat_val and stat_val != "") else None
-        
-        assets = self.controller.search_assets(query, cat_id, sec_id, status)
+
+        return self.controller.search_assets(query, cat_id, sec_id, status)
+
+    def refresh_table(self):
+        assets = self._get_filtered_assets()
         self.table.update_data(assets)
+
+    async def _generate_all_labels(self, e):
+        assets = self._get_filtered_assets()
+        if not assets:
+            show_error_snackbar(self.page, "Nenhum patrimônio encontrado com os filtros atuais.")
+            return
+        success, res = self.controller.generate_labels_bulk([a.id for a in assets])
+        if success:
+            await reveal_file(
+                self.page, res,
+                desktop_message=f"Etiquetas geradas em: {res}",
+                web_title=f"{len(assets)} etiquetas geradas!"
+            )
+        else:
+            show_error_snackbar(self.page, res)
 
     def _trigger_search(self, e):
         self.refresh_table()
