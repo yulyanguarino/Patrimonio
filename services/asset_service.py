@@ -38,7 +38,8 @@ class AssetService:
             raise BusinessRuleException("O nome do patrimônio não pode ser vazio.")
             
         # Validação de Categoria e Setor
-        if not self.category_repo.get_by_id(categoria_id):
+        category = self.category_repo.get_by_id(categoria_id)
+        if not category:
             raise BusinessRuleException("A categoria selecionada é inválida ou não existe.")
         if not self.sector_repo.get_by_id(setor_id):
             raise BusinessRuleException("O setor selecionado é inválido ou não existe.")
@@ -48,15 +49,17 @@ class AssetService:
         if status not in valid_statuses:
             raise BusinessRuleException(f"Status '{status}' é inválido.")
 
-        # Validações condicionais por Status
-        if status == "Em uso":
+        # Validações condicionais por Status. Ar Condicionado é exceção: não
+        # tem um responsável individual, é um bem do setor/ambiente.
+        if status == "Em uso" and category.nome != "Ar Condicionado":
             if not funcionario_id:
                 raise BusinessRuleException("O funcionário responsável é obrigatório quando o status for 'Em uso'.")
             emp = self.employee_repo.get_by_id(funcionario_id)
             if not emp:
                 raise BusinessRuleException("Funcionário selecionado é inválido.")
-        elif status in ("Disponível", "Baixado", "Em manutenção"):
-            # Garante que patrimônio sem uso ou baixado não possui funcionário vinculado
+        else:
+            # Sem uso, baixado, em manutenção, ou Ar Condicionado em uso:
+            # garante que não fica com um funcionário vinculado sem sentido.
             funcionario_id = None
 
         if garantia_meses is not None and garantia_meses < 0:
@@ -111,7 +114,8 @@ class AssetService:
             raise BusinessRuleException("O nome do patrimônio não pode ser vazio.")
 
         # Validação de Categoria e Setor
-        if not self.category_repo.get_by_id(categoria_id):
+        category = self.category_repo.get_by_id(categoria_id)
+        if not category:
             raise BusinessRuleException("A categoria selecionada é inválida ou não existe.")
         if not self.sector_repo.get_by_id(setor_id):
             raise BusinessRuleException("O setor selecionado é inválido ou não existe.")
@@ -120,14 +124,15 @@ class AssetService:
         if status not in valid_statuses:
             raise BusinessRuleException(f"Status '{status}' é inválido.")
 
-        # Validações de Status e Funcionário
-        if status == "Em uso":
+        # Validações de Status e Funcionário. Ar Condicionado é exceção: não
+        # tem um responsável individual, é um bem do setor/ambiente.
+        if status == "Em uso" and category.nome != "Ar Condicionado":
             if not funcionario_id:
                 raise BusinessRuleException("O funcionário responsável é obrigatório quando o status for 'Em uso'.")
             emp = self.employee_repo.get_by_id(funcionario_id)
             if not emp:
                 raise BusinessRuleException("Funcionário selecionado é inválido.")
-        elif status in ("Disponível", "Baixado", "Em manutenção"):
+        else:
             funcionario_id = None
 
         if garantia_meses is not None and garantia_meses < 0:

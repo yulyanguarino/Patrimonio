@@ -391,6 +391,14 @@ class AssetListView(BaseView):
         except RuntimeError:
             pass
 
+        # A categoria pode mudar depois do status já estar "Em uso" -- recalcula
+        # se o funcionário responsável ainda é exigido (exceção: Ar Condicionado).
+        self.form_employee.visible = self._employee_required()
+        try:
+            self.form_employee.update()
+        except RuntimeError:
+            pass
+
     async def _on_pick_inventory_file(self, e):
         files = await self.inventory_file_picker.pick_files(
             allow_multiple=False,
@@ -431,8 +439,19 @@ class AssetListView(BaseView):
         self.inventory_file_text.weight = None
         self.inventory_file_text.color = ft.Colors.ON_SURFACE_VARIANT
 
+    def _employee_required(self) -> bool:
+        """
+        Funcionário responsável só é exigido quando o status é "Em uso" --
+        exceto para Ar Condicionado, que não tem um responsável individual
+        (é um bem do setor/ambiente, não de uma pessoa).
+        """
+        if self.form_status.value != "Em uso":
+            return False
+        category_name = self._category_names_by_id.get(self.form_category.value)
+        return category_name != "Ar Condicionado"
+
     def _on_form_status_change(self, e):
-        self.form_employee.visible = (self.form_status.value == "Em uso")
+        self.form_employee.visible = self._employee_required()
         try:
             self.form_employee.update()
         except RuntimeError:
@@ -505,7 +524,7 @@ class AssetListView(BaseView):
         self.form_sector.value = str(asset.setor_id)
         self.form_status.value = asset.status
         self.form_employee.value = str(asset.funcionario_id) if asset.funcionario_id else None
-        self.form_employee.visible = (asset.status == "Em uso")
+        self.form_employee.visible = self._employee_required()
         self.form_nf.value = asset.nota_fiscal or ""
         self.form_garantia.value = str(asset.garantia_meses) if asset.garantia_meses is not None else ""
         self.form_obs.value = asset.observacoes or ""
@@ -604,7 +623,9 @@ class AssetListView(BaseView):
         else:
             self.form_sector.error_text = None
             
-        if status == "Em uso" and not emp_val:
+        category_name = self._category_names_by_id.get(cat_val)
+        employee_required = status == "Em uso" and category_name != "Ar Condicionado"
+        if employee_required and not emp_val:
             self.form_employee.error_text = "Selecione o Funcionário."
             has_error = True
         else:
