@@ -26,10 +26,12 @@ class AssetListView(BaseView):
         
         self.selected_date = None
         self.editing_asset = None  # None para Criar, Objeto Asset para Editar
-        # Lembra a última Categoria/Setor usados, pra facilitar cadastro em lote
-        # de itens parecidos (ex: várias mesas do mesmo setor seguidas).
+        # Lembra a última Categoria/Setor/Funcionário usados, pra facilitar
+        # cadastro em lote de itens parecidos (ex: várias mesas do mesmo
+        # setor, ou vários patrimônios do mesmo responsável/vendedor).
         self._last_category_id = None
         self._last_sector_id = None
+        self._last_employee_id = None
         
         # DatePicker para Compra
         self.date_picker = ft.DatePicker(
@@ -463,7 +465,7 @@ class AssetListView(BaseView):
         self.form_category.value = self._last_category_id
         self.form_sector.value = self._last_sector_id
         self.form_status.value = "Disponível"
-        self.form_employee.value = None
+        self.form_employee.value = self._last_employee_id
         self.form_employee.visible = False
         self.form_nf.value = ""
         self.form_garantia.value = ""
@@ -679,6 +681,8 @@ class AssetListView(BaseView):
             if is_creating:
                 self._last_category_id = cat_val
                 self._last_sector_id = sec_val
+                if emp_val:
+                    self._last_employee_id = emp_val
             show_success_snackbar(self.page, "Patrimônio salvo com sucesso!")
             dialog.open = False
             try:
