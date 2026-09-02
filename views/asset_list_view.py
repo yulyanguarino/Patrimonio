@@ -150,6 +150,9 @@ class AssetListView(BaseView):
             expand=True
         )
         self.form_employee = ft.Dropdown(label="Funcionário Responsável*", hint_text="Selecione o Responsável", visible=False, enable_filter=True, editable=True, border_radius=8, expand=True)
+        self._bind_dropdown_tab_autofill(self.form_category, extra_on_blur=self._on_form_category_change)
+        self._bind_dropdown_tab_autofill(self.form_sector)
+        self._bind_dropdown_tab_autofill(self.form_employee)
         self.form_nf = ft.TextField(label="Nota Fiscal", border_radius=8, expand=True)
         self.selected_nf_path = None
         # Service (não controle visual): se auto-registra, não vai no page.overlay.
@@ -348,6 +351,33 @@ class AssetListView(BaseView):
                 self.nf_file_text.update()
             except RuntimeError:
                 pass
+
+    def _bind_dropdown_tab_autofill(self, dropdown: ft.Dropdown, extra_on_blur=None):
+        """
+        Ao sair do campo (ex: apertar Tab) com uma letra digitada mas sem
+        confirmar a seleção com seta+Enter, escolhe automaticamente a primeira
+        opção cujo nome começa com o texto digitado.
+        """
+        def on_text_change(e):
+            dropdown.data = e.control.text
+
+        def on_blur(e):
+            typed = (dropdown.data or "").strip().lower()
+            if typed:
+                for opt in dropdown.options:
+                    if opt.text and opt.text.lower().startswith(typed):
+                        dropdown.value = opt.key
+                        try:
+                            dropdown.update()
+                        except RuntimeError:
+                            pass
+                        break
+            dropdown.data = None
+            if extra_on_blur:
+                extra_on_blur(e)
+
+        dropdown.on_text_change = on_text_change
+        dropdown.on_blur = on_blur
 
     def _on_form_category_change(self, e):
         category_name = self._category_names_by_id.get(self.form_category.value)
