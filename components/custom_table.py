@@ -63,10 +63,14 @@ class CustomTable(ft.Column):
         self.spacing = 10
         self.expand = True
         
-    def update_data(self, new_data: list):
+    def update_data(self, new_data: list, jump_to_last: bool = False):
         self.rows_data = new_data
-        # Reseta para a primeira página ao atualizar dados
-        self.current_page = 1
+        if jump_to_last:
+            total_pages = max(1, (len(new_data) + self.rows_per_page - 1) // self.rows_per_page)
+            self.current_page = total_pages
+        else:
+            # Reseta para a primeira página ao atualizar dados (ex: nova busca/filtro)
+            self.current_page = 1
         self._render_page()
         
     def _render_page(self):

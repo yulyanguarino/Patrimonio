@@ -26,6 +26,10 @@ class AssetListView(BaseView):
         
         self.selected_date = None
         self.editing_asset = None  # None para Criar, Objeto Asset para Editar
+        # Lembra a última Categoria/Setor usados, pra facilitar cadastro em lote
+        # de itens parecidos (ex: várias mesas do mesmo setor seguidas).
+        self._last_category_id = None
+        self._last_sector_id = None
         
         # DatePicker para Compra
         self.date_picker = ft.DatePicker(
@@ -226,9 +230,9 @@ class AssetListView(BaseView):
 
         return self.controller.search_assets(query, cat_id, sec_id, status)
 
-    def refresh_table(self):
+    def refresh_table(self, jump_to_last: bool = False):
         assets = self._get_filtered_assets()
-        self.table.update_data(assets)
+        self.table.update_data(assets, jump_to_last=jump_to_last)
 
     async def _generate_all_labels(self, e):
         assets = self._get_filtered_assets()
@@ -418,10 +422,12 @@ class AssetListView(BaseView):
         self.form_sector.error_text = None
         self.form_employee.error_text = None
         
-        # Limpa campos
+        # Limpa campos. Categoria/Setor ficam com o último valor usado (não
+        # None) pra agilizar cadastro em lote de itens parecidos -- ex:
+        # registrar várias mesas do mesmo setor seguidas sem reselecionar.
         self.form_nome.value = ""
-        self.form_category.value = None
-        self.form_sector.value = None
+        self.form_category.value = self._last_category_id
+        self.form_sector.value = self._last_sector_id
         self.form_status.value = "Disponível"
         self.form_employee.value = None
         self.form_employee.visible = False
@@ -432,7 +438,7 @@ class AssetListView(BaseView):
         self.date_text.italic = True
         self._reset_nf_upload()
         self._reset_inventory_upload()
-        self.inventory_row.visible = False
+        self.inventory_row.visible = self._category_names_by_id.get(self.form_category.value) in INVENTORY_CATEGORIES
 
         self._show_form_modal("Cadastrar Patrimônio")
 
@@ -592,7 +598,8 @@ class AssetListView(BaseView):
                 return
                 
         # Cria ou edita via controller
-        if self.editing_asset is None:
+        is_creating = self.editing_asset is None
+        if is_creating:
             success, res = self.controller.create_asset(
                 nome=nome,
                 categoria_id=categoria_id,
@@ -635,13 +642,16 @@ class AssetListView(BaseView):
                 )
                 if not att_success:
                     show_error_snackbar(self.page, f"Patrimônio salvo, mas falhou ao anexar o inventário: {att_res}")
+            if is_creating:
+                self._last_category_id = cat_val
+                self._last_sector_id = sec_val
             show_success_snackbar(self.page, "Patrimônio salvo com sucesso!")
             dialog.open = False
             try:
                 self.page.update()
             except RuntimeError:
                 pass
-            self.refresh_table()
+            self.refresh_table(jump_to_last=is_creating)
         else:
             show_error_snackbar(self.page, res)
 
