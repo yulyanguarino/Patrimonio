@@ -24,6 +24,16 @@ class EmployeeController(BaseController):
         except Exception as e:
             return False, f"Erro inesperado: {str(e)}"
 
+    def update_employee(self, employee_id: int, name: str, sector_id: int):
+        """Tenta atualizar nome/setor de um funcionário e trata exceções de negócio."""
+        try:
+            employee = self.service.update_employee(employee_id, name, sector_id)
+            return True, employee
+        except BusinessRuleException as e:
+            return False, str(e)
+        except Exception as e:
+            return False, f"Erro inesperado: {str(e)}"
+
     def delete_employee(self, employee_id: int):
         """Tenta remover um funcionário após verificar se ele não possui bens sob posse ativa."""
         try:

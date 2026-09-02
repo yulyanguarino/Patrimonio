@@ -30,6 +30,23 @@ class CategoryService:
         """Busca categoria por ID."""
         return self.category_repo.get_by_id(category_id)
 
+    def update_category(self, category_id: int, name: str) -> Category:
+        """Atualiza o nome de uma categoria existente."""
+        category = self.category_repo.get_by_id(category_id)
+        if not category:
+            raise BusinessRuleException("Categoria não encontrada.")
+
+        name = name.strip()
+        if not name:
+            raise BusinessRuleException("O nome da categoria não pode ser vazio.")
+
+        existing = self.category_repo.get_by_name(name)
+        if existing and existing.id != category_id:
+            raise BusinessRuleException(f"Já existe uma categoria cadastrada com o nome '{name}'.")
+
+        category.nome = name
+        return self.category_repo.update(category)
+
     def delete_category(self, category_id: int) -> None:
         """Remove a categoria se não houver nenhum patrimônio vinculado."""
         category = self.category_repo.get_by_id(category_id)

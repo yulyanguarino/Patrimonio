@@ -10,39 +10,46 @@ class CategoryView(BaseView):
         self.db = db
         self.navigate_to = navigate_to
         self.controller = CategoryController(db)
-        
+        self.editing_id = None  # None = cadastrando nova, id = editando existente
+
         # Elementos da UI
         self.title_text = ft.Text("Cadastro de Categorias", size=28, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_400)
         self.name_field = ft.TextField(
-            label="Nome da Categoria", 
+            label="Nome da Categoria",
             expand=True,
-            on_submit=self._add_category,
+            on_submit=self._save_category,
             border_radius=8
         )
-        self.add_btn = ft.ElevatedButton(
-            "Adicionar", 
-            icon=ft.Icons.ADD_ROUNDED, 
-            on_click=self._add_category,
+        self.save_btn = ft.ElevatedButton(
+            "Adicionar",
+            icon=ft.Icons.ADD_ROUNDED,
+            on_click=self._save_category,
             style=ft.ButtonStyle(
                 shape=ft.RoundedRectangleBorder(radius=8),
                 bgcolor=ft.Colors.BLUE_900,
                 color=ft.Colors.BLUE_100
             )
         )
-        
+        self.cancel_edit_btn = ft.TextButton(
+            "Cancelar edição",
+            on_click=self._cancel_edit,
+            visible=False
+        )
+
         # Form Row
         self.form_row = ft.Row([
             self.name_field,
-            self.add_btn
+            self.save_btn,
+            self.cancel_edit_btn
         ], spacing=10, vertical_alignment=ft.CrossAxisAlignment.CENTER)
-        
+
         # Tabela Customizada
         self.table = CustomTable(
             columns=["ID", "Nome da Categoria", "Ações"],
             row_builder_func=self._build_row,
             rows_per_page=10
         )
-        
+
         self.content = ft.Column([
             self.title_text,
             ft.Text("Gerencie as categorias de patrimônios cadastradas no sistema (ex: Notebook, Mesa, Cadeira).", color=ft.Colors.ON_SURFACE_VARIANT, size=14),
@@ -67,6 +74,11 @@ class CategoryView(BaseView):
                 ft.DataCell(
                     ft.Row([
                         ft.IconButton(
+                            ft.Icons.EDIT_ROUNDED,
+                            tooltip="Editar Categoria",
+                            on_click=lambda e: self._edit_category(category)
+                        ),
+                        ft.IconButton(
                             ft.Icons.DELETE_OUTLINE_ROUNDED,
                             icon_color=ft.Colors.RED_400,
                             tooltip="Excluir Categoria",
@@ -77,20 +89,49 @@ class CategoryView(BaseView):
             ]
         )
 
-    def _add_category(self, e):
+    def _edit_category(self, category):
+        self.editing_id = category.id
+        self.name_field.value = category.nome
+        self.save_btn.text = "Atualizar"
+        self.save_btn.icon = ft.Icons.SAVE_ROUNDED
+        self.cancel_edit_btn.visible = True
+        try:
+            self.name_field.update()
+            self.save_btn.update()
+            self.cancel_edit_btn.update()
+            self.name_field.focus()
+        except RuntimeError:
+            pass
+
+    def _cancel_edit(self, e):
+        self.editing_id = None
+        self.name_field.value = ""
+        self.save_btn.text = "Adicionar"
+        self.save_btn.icon = ft.Icons.ADD_ROUNDED
+        self.cancel_edit_btn.visible = False
+        try:
+            self.name_field.update()
+            self.save_btn.update()
+            self.cancel_edit_btn.update()
+        except RuntimeError:
+            pass
+
+    def _save_category(self, e):
         name = self.name_field.value.strip()
         if not name:
             show_error_snackbar(self.page, "O nome da categoria é obrigatório.")
             return
-            
-        success, res = self.controller.create_category(name)
+
+        if self.editing_id is None:
+            success, res = self.controller.create_category(name)
+            success_message = f"Categoria '{res.nome}' cadastrada com sucesso!" if success else res
+        else:
+            success, res = self.controller.update_category(self.editing_id, name)
+            success_message = f"Categoria '{res.nome}' atualizada com sucesso!" if success else res
+
         if success:
-            show_success_snackbar(self.page, f"Categoria '{res.nome}' cadastrada com sucesso!")
-            self.name_field.value = ""
-            try:
-                self.name_field.update()
-            except RuntimeError:
-                pass
+            show_success_snackbar(self.page, success_message)
+            self._cancel_edit(None)
             self.refresh_table()
         else:
             show_error_snackbar(self.page, res)
@@ -103,17 +144,11 @@ class CategoryView(BaseView):
             lambda: self._delete_category(category_id)
         )
 
-    def _delete_sector(self, category_id: int): # Wait, we should name it delete_category, but let's make it consistent.
-        success, message = self.controller.delete_category(category_id)
-        if success:
-            show_success_snackbar(self.page, message)
-            self.refresh_table()
-        else:
-            show_error_snackbar(self.page, message)
-
     def _delete_category(self, category_id: int):
         success, message = self.controller.delete_category(category_id)
         if success:
+            if self.editing_id == category_id:
+                self._cancel_edit(None)
             show_success_snackbar(self.page, message)
             self.refresh_table()
         else:

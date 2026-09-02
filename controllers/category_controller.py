@@ -24,6 +24,16 @@ class CategoryController(BaseController):
         except Exception as e:
             return False, f"Erro inesperado: {str(e)}"
 
+    def update_category(self, category_id: int, name: str):
+        """Tenta atualizar o nome de uma categoria e trata exceções de negócio."""
+        try:
+            category = self.service.update_category(category_id, name)
+            return True, category
+        except BusinessRuleException as e:
+            return False, str(e)
+        except Exception as e:
+            return False, f"Erro inesperado: {str(e)}"
+
     def delete_category(self, category_id: int):
         """Tenta remover uma categoria após validação de dependências."""
         try:

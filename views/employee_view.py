@@ -12,11 +12,12 @@ class EmployeeView(BaseView):
         self.navigate_to = navigate_to
         self.controller = EmployeeController(db)
         self.sector_controller = SectorController(db)
-        
+        self.editing_id = None  # None = cadastrando novo, id = editando existente
+
         # Elementos da UI
         self.title_text = ft.Text("Cadastro de Funcionários", size=28, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_400)
         self.name_field = ft.TextField(
-            label="Nome do Funcionário", 
+            label="Nome do Funcionário",
             expand=True,
             border_radius=8
         )
@@ -24,33 +25,41 @@ class EmployeeView(BaseView):
             label="Setor",
             width=250,
             options=[],
+            enable_filter=True,
+            editable=True,
             border_radius=8
         )
-        self.add_btn = ft.ElevatedButton(
-            "Adicionar", 
-            icon=ft.Icons.ADD_ROUNDED, 
-            on_click=self._add_employee,
+        self.save_btn = ft.ElevatedButton(
+            "Adicionar",
+            icon=ft.Icons.ADD_ROUNDED,
+            on_click=self._save_employee,
             style=ft.ButtonStyle(
                 shape=ft.RoundedRectangleBorder(radius=8),
                 bgcolor=ft.Colors.BLUE_900,
                 color=ft.Colors.BLUE_100
             )
         )
-        
+        self.cancel_edit_btn = ft.TextButton(
+            "Cancelar edição",
+            on_click=self._cancel_edit,
+            visible=False
+        )
+
         # Form Row
         self.form_row = ft.Row([
             self.name_field,
             self.sector_dropdown,
-            self.add_btn
+            self.save_btn,
+            self.cancel_edit_btn
         ], spacing=10, vertical_alignment=ft.CrossAxisAlignment.CENTER)
-        
+
         # Tabela Customizada
         self.table = CustomTable(
             columns=["ID", "Nome do Funcionário", "Setor", "Ações"],
             row_builder_func=self._build_row,
             rows_per_page=10
         )
-        
+
         self.content = ft.Column([
             self.title_text,
             ft.Text("Gerencie os funcionários da empresa para alocação e controle de responsabilidade sobre os patrimônios.", color=ft.Colors.ON_SURFACE_VARIANT, size=14),
@@ -69,10 +78,8 @@ class EmployeeView(BaseView):
         self.sector_dropdown.options = [
             ft.dropdown.Option(key=str(s.id), text=s.nome) for s in sectors
         ]
-        if sectors:
-            self.sector_dropdown.value = str(sectors[0].id)
-        else:
-            self.sector_dropdown.value = None
+        if self.editing_id is None:
+            self.sector_dropdown.value = str(sectors[0].id) if sectors else None
         try:
             self.sector_dropdown.update()
         except RuntimeError:
@@ -92,6 +99,11 @@ class EmployeeView(BaseView):
                 ft.DataCell(
                     ft.Row([
                         ft.IconButton(
+                            ft.Icons.EDIT_ROUNDED,
+                            tooltip="Editar Funcionário",
+                            on_click=lambda e: self._edit_employee(employee)
+                        ),
+                        ft.IconButton(
                             ft.Icons.DELETE_OUTLINE_ROUNDED,
                             icon_color=ft.Colors.RED_400,
                             tooltip="Excluir Funcionário",
@@ -102,25 +114,57 @@ class EmployeeView(BaseView):
             ]
         )
 
-    def _add_employee(self, e):
+    def _edit_employee(self, employee):
+        self.editing_id = employee.id
+        self.name_field.value = employee.nome
+        self.sector_dropdown.value = str(employee.setor_id) if employee.setor_id else None
+        self.save_btn.text = "Atualizar"
+        self.save_btn.icon = ft.Icons.SAVE_ROUNDED
+        self.cancel_edit_btn.visible = True
+        try:
+            self.name_field.update()
+            self.sector_dropdown.update()
+            self.save_btn.update()
+            self.cancel_edit_btn.update()
+            self.name_field.focus()
+        except RuntimeError:
+            pass
+
+    def _cancel_edit(self, e):
+        self.editing_id = None
+        self.name_field.value = ""
+        self.save_btn.text = "Adicionar"
+        self.save_btn.icon = ft.Icons.ADD_ROUNDED
+        self.cancel_edit_btn.visible = False
+        self.refresh_dropdown()
+        try:
+            self.name_field.update()
+            self.save_btn.update()
+            self.cancel_edit_btn.update()
+        except RuntimeError:
+            pass
+
+    def _save_employee(self, e):
         name = self.name_field.value.strip()
         sector_id_str = self.sector_dropdown.value
-        
+
         if not name:
             show_error_snackbar(self.page, "O nome do funcionário é obrigatório.")
             return
         if not sector_id_str:
             show_error_snackbar(self.page, "É necessário selecionar um setor válido. Se necessário, cadastre um setor primeiro.")
             return
-            
-        success, res = self.controller.create_employee(name, int(sector_id_str))
+
+        if self.editing_id is None:
+            success, res = self.controller.create_employee(name, int(sector_id_str))
+            success_message = f"Funcionário '{res.nome}' cadastrado com sucesso!" if success else res
+        else:
+            success, res = self.controller.update_employee(self.editing_id, name, int(sector_id_str))
+            success_message = f"Funcionário '{res.nome}' atualizado com sucesso!" if success else res
+
         if success:
-            show_success_snackbar(self.page, f"Funcionário '{res.nome}' cadastrado com sucesso!")
-            self.name_field.value = ""
-            try:
-                self.name_field.update()
-            except RuntimeError:
-                pass
+            show_success_snackbar(self.page, success_message)
+            self._cancel_edit(None)
             self.refresh_table()
         else:
             show_error_snackbar(self.page, res)
@@ -136,6 +180,8 @@ class EmployeeView(BaseView):
     def _delete_employee(self, employee_id: int):
         success, message = self.controller.delete_employee(employee_id)
         if success:
+            if self.editing_id == employee_id:
+                self._cancel_edit(None)
             show_success_snackbar(self.page, message)
             self.refresh_table()
         else:

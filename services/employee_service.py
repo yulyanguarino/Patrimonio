@@ -33,6 +33,24 @@ class EmployeeService:
         """Busca funcionário por ID."""
         return self.employee_repo.get_by_id(employee_id)
 
+    def update_employee(self, employee_id: int, name: str, sector_id: int) -> Employee:
+        """Atualiza nome e setor de um funcionário existente."""
+        employee = self.employee_repo.get_by_id(employee_id)
+        if not employee:
+            raise BusinessRuleException("Funcionário não encontrado.")
+
+        name = name.strip()
+        if not name:
+            raise BusinessRuleException("O nome do funcionário não pode ser vazio.")
+
+        sector = self.sector_repo.get_by_id(sector_id)
+        if not sector:
+            raise BusinessRuleException("O setor selecionado é inválido ou não existe.")
+
+        employee.nome = name
+        employee.setor_id = sector_id
+        return self.employee_repo.update(employee)
+
     def delete_employee(self, employee_id: int) -> None:
         """
         Exclui um funcionário se ele não for o responsável ativo por nenhum patrimônio.
