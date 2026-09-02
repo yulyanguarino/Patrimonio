@@ -11,6 +11,7 @@ from components.dialogs import show_success_snackbar, show_error_snackbar, show_
 from utils.uploads import resolve_picked_file
 from utils.file_actions import reveal_file
 from services.inventory_import_service import parse_inventory_csv, build_asset_name, build_observacoes, INVENTORY_CATEGORIES
+from services.asset_service import NO_RESPONSIBLE_CATEGORIES
 
 class AssetListView(BaseView):
     def __init__(self, page: ft.Page, db, navigate_to, **kwargs):
@@ -392,7 +393,7 @@ class AssetListView(BaseView):
             pass
 
         # A categoria pode mudar depois do status já estar "Em uso" -- recalcula
-        # se o funcionário responsável ainda é exigido (exceção: Ar Condicionado).
+        # se o funcionário responsável ainda é exigido.
         self.form_employee.visible = self._employee_required()
         try:
             self.form_employee.update()
@@ -442,13 +443,13 @@ class AssetListView(BaseView):
     def _employee_required(self) -> bool:
         """
         Funcionário responsável só é exigido quando o status é "Em uso" --
-        exceto para Ar Condicionado, que não tem um responsável individual
+        exceto pra categorias em NO_RESPONSIBLE_CATEGORIES (Ar Condicionado, Switch...),
         (é um bem do setor/ambiente, não de uma pessoa).
         """
         if self.form_status.value != "Em uso":
             return False
         category_name = self._category_names_by_id.get(self.form_category.value)
-        return category_name != "Ar Condicionado"
+        return category_name not in NO_RESPONSIBLE_CATEGORIES
 
     def _on_form_status_change(self, e):
         self.form_employee.visible = self._employee_required()
@@ -624,7 +625,7 @@ class AssetListView(BaseView):
             self.form_sector.error_text = None
             
         category_name = self._category_names_by_id.get(cat_val)
-        employee_required = status == "Em uso" and category_name != "Ar Condicionado"
+        employee_required = status == "Em uso" and category_name not in NO_RESPONSIBLE_CATEGORIES
         if employee_required and not emp_val:
             self.form_employee.error_text = "Selecione o Funcionário."
             has_error = True

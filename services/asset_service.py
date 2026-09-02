@@ -9,6 +9,10 @@ from repositories.sector_repository import SectorRepository
 from repositories.employee_repository import EmployeeRepository
 from utils.exceptions import BusinessRuleException
 
+# Categorias de bens que não têm um responsável individual (são do
+# setor/ambiente, não de uma pessoa) -- não exigem funcionário quando "Em uso".
+NO_RESPONSIBLE_CATEGORIES = {"Ar Condicionado", "Switch"}
+
 class AssetService:
     def __init__(self, db: Session):
         self.db = db
@@ -49,9 +53,9 @@ class AssetService:
         if status not in valid_statuses:
             raise BusinessRuleException(f"Status '{status}' é inválido.")
 
-        # Validações condicionais por Status. Ar Condicionado é exceção: não
+        # Validações condicionais por Status. Categorias em NO_RESPONSIBLE_CATEGORIES sao excecao: nao
         # tem um responsável individual, é um bem do setor/ambiente.
-        if status == "Em uso" and category.nome != "Ar Condicionado":
+        if status == "Em uso" and category.nome not in NO_RESPONSIBLE_CATEGORIES:
             if not funcionario_id:
                 raise BusinessRuleException("O funcionário responsável é obrigatório quando o status for 'Em uso'.")
             emp = self.employee_repo.get_by_id(funcionario_id)
@@ -124,9 +128,9 @@ class AssetService:
         if status not in valid_statuses:
             raise BusinessRuleException(f"Status '{status}' é inválido.")
 
-        # Validações de Status e Funcionário. Ar Condicionado é exceção: não
+        # Validações de Status e Funcionário. Categorias em NO_RESPONSIBLE_CATEGORIES sao excecao: nao
         # tem um responsável individual, é um bem do setor/ambiente.
-        if status == "Em uso" and category.nome != "Ar Condicionado":
+        if status == "Em uso" and category.nome not in NO_RESPONSIBLE_CATEGORIES:
             if not funcionario_id:
                 raise BusinessRuleException("O funcionário responsável é obrigatório quando o status for 'Em uso'.")
             emp = self.employee_repo.get_by_id(funcionario_id)

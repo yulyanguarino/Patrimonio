@@ -25,6 +25,7 @@ def seed_db():
         "Cadeira",
         "Ferramenta",
         "Ar Condicionado",
+        "Switch",
         "Outros"
     ]
     
