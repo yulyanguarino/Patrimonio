@@ -55,14 +55,18 @@ class AssetListView(BaseView):
             width=180,
             options=[],
             on_select=self._trigger_search,
+            enable_filter=True,
+            editable=True,
             border_radius=8
         )
-        
+
         self.filter_sector = ft.Dropdown(
             label="Setor",
             width=180,
             options=[],
             on_select=self._trigger_search,
+            enable_filter=True,
+            editable=True,
             border_radius=8
         )
         
@@ -130,9 +134,9 @@ class AssetListView(BaseView):
         
         # Campos do Formulário Modal (Criar/Editar)
         self.form_nome = ft.TextField(label="Nome do Patrimônio*", border_radius=8)
-        self.form_category = ft.Dropdown(label="Categoria*", hint_text="Selecione a Categoria", on_select=self._on_form_category_change, border_radius=8, expand=True)
+        self.form_category = ft.Dropdown(label="Categoria*", hint_text="Selecione a Categoria", on_select=self._on_form_category_change, enable_filter=True, editable=True, border_radius=8, expand=True)
         self._category_names_by_id = {}
-        self.form_sector = ft.Dropdown(label="Setor*", hint_text="Selecione o Setor", border_radius=8, expand=True)
+        self.form_sector = ft.Dropdown(label="Setor*", hint_text="Selecione o Setor", enable_filter=True, editable=True, border_radius=8, expand=True)
         self.form_status = ft.Dropdown(
             label="Status*",
             options=[
@@ -145,7 +149,7 @@ class AssetListView(BaseView):
             border_radius=8,
             expand=True
         )
-        self.form_employee = ft.Dropdown(label="Funcionário Responsável*", hint_text="Selecione o Responsável", visible=False, border_radius=8, expand=True)
+        self.form_employee = ft.Dropdown(label="Funcionário Responsável*", hint_text="Selecione o Responsável", visible=False, enable_filter=True, editable=True, border_radius=8, expand=True)
         self.form_nf = ft.TextField(label="Nota Fiscal", border_radius=8, expand=True)
         self.selected_nf_path = None
         # Service (não controle visual): se auto-registra, não vai no page.overlay.
