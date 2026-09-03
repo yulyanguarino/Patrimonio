@@ -48,11 +48,18 @@ class PatrimonioApp(ft.Row):
         
         # Inicializa a Sidebar de navegação
         self.sidebar = Sidebar(self.page, self.current_route, self.navigate_to)
-        
+
         self.controls = [
             self.sidebar,
             self.main_content
         ]
+
+        # Colapsa a sidebar pra só ícones em telas estreitas (celular/tablet)
+        page.on_resize = self._on_page_resize
+
+    def _on_page_resize(self, e: ft.PageResizeEvent) -> None:
+        from components.sidebar import COMPACT_BREAKPOINT
+        self.sidebar.set_compact(e.width < COMPACT_BREAKPOINT)
         
     def did_mount(self):
         self.navigate_to("/dashboard")

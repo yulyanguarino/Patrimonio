@@ -518,6 +518,13 @@ class AssetDetailView(BaseView):
             except RuntimeError:
                 pass
 
+        # Responsivo: em telas estreitas (celular) o modal usa quase a
+        # largura toda da tela em vez de um tamanho fixo pensado pra desktop.
+        page_width = self.page.width or 1280
+        page_height = self.page.height or 800
+        modal_width = min(550, page_width - 32)
+        modal_height = min(480, page_height - 140)
+
         dialog = ft.AlertDialog(
             modal=True,
             title=ft.Text("Registrar Manutenção", weight=ft.FontWeight.BOLD),
@@ -527,7 +534,7 @@ class AssetDetailView(BaseView):
                     ft.Row([
                         self.maint_date_btn,
                         self.maint_date_text
-                    ], spacing=10, vertical_alignment=ft.CrossAxisAlignment.CENTER),
+                    ], spacing=10, vertical_alignment=ft.CrossAxisAlignment.CENTER, wrap=True),
                     self.maint_prestador,
                     self.maint_problema,
                     self.maint_servico,
@@ -535,12 +542,12 @@ class AssetDetailView(BaseView):
                     ft.Row([
                         self.next_date_btn,
                         self.next_date_text
-                    ], spacing=10, vertical_alignment=ft.CrossAxisAlignment.CENTER),
+                    ], spacing=10, vertical_alignment=ft.CrossAxisAlignment.CENTER, wrap=True),
                     self.maint_obs,
                     self.maint_chk_status
                 ], spacing=12, scroll=ft.ScrollMode.AUTO),
-                width=550,
-                height=480
+                width=modal_width,
+                height=modal_height
             ),
             actions=[
                 ft.TextButton("Cancelar", on_click=close_dialog),

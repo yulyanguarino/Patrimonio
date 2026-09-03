@@ -9,10 +9,6 @@ from repositories.sector_repository import SectorRepository
 from repositories.employee_repository import EmployeeRepository
 from utils.exceptions import BusinessRuleException
 
-# Categorias de bens que não têm um responsável individual (são do
-# setor/ambiente, não de uma pessoa) -- não exigem funcionário quando "Em uso".
-NO_RESPONSIBLE_CATEGORIES = {"Ar Condicionado", "Switch"}
-
 class AssetService:
     def __init__(self, db: Session):
         self.db = db
@@ -53,17 +49,15 @@ class AssetService:
         if status not in valid_statuses:
             raise BusinessRuleException(f"Status '{status}' é inválido.")
 
-        # Validações condicionais por Status. Categorias em NO_RESPONSIBLE_CATEGORIES sao excecao: nao
-        # tem um responsável individual, é um bem do setor/ambiente.
-        if status == "Em uso" and category.nome not in NO_RESPONSIBLE_CATEGORIES:
-            if not funcionario_id:
-                raise BusinessRuleException("O funcionário responsável é obrigatório quando o status for 'Em uso'.")
-            emp = self.employee_repo.get_by_id(funcionario_id)
-            if not emp:
-                raise BusinessRuleException("Funcionário selecionado é inválido.")
+        # Funcionário responsável é sempre opcional, mesmo com status "Em uso"
+        # -- se informado, precisa corresponder a um funcionário existente.
+        # Fora de "Em uso" nunca faz sentido manter um responsável vinculado.
+        if status == "Em uso":
+            if funcionario_id:
+                emp = self.employee_repo.get_by_id(funcionario_id)
+                if not emp:
+                    raise BusinessRuleException("Funcionário selecionado é inválido.")
         else:
-            # Sem uso, baixado, em manutenção, ou Ar Condicionado em uso:
-            # garante que não fica com um funcionário vinculado sem sentido.
             funcionario_id = None
 
         if garantia_meses is not None and garantia_meses < 0:
@@ -128,14 +122,12 @@ class AssetService:
         if status not in valid_statuses:
             raise BusinessRuleException(f"Status '{status}' é inválido.")
 
-        # Validações de Status e Funcionário. Categorias em NO_RESPONSIBLE_CATEGORIES sao excecao: nao
-        # tem um responsável individual, é um bem do setor/ambiente.
-        if status == "Em uso" and category.nome not in NO_RESPONSIBLE_CATEGORIES:
-            if not funcionario_id:
-                raise BusinessRuleException("O funcionário responsável é obrigatório quando o status for 'Em uso'.")
-            emp = self.employee_repo.get_by_id(funcionario_id)
-            if not emp:
-                raise BusinessRuleException("Funcionário selecionado é inválido.")
+        # Funcionário responsável é sempre opcional, mesmo com status "Em uso".
+        if status == "Em uso":
+            if funcionario_id:
+                emp = self.employee_repo.get_by_id(funcionario_id)
+                if not emp:
+                    raise BusinessRuleException("Funcionário selecionado é inválido.")
         else:
             funcionario_id = None
 

@@ -11,7 +11,6 @@ from components.dialogs import show_success_snackbar, show_error_snackbar, show_
 from utils.uploads import resolve_picked_file
 from utils.file_actions import reveal_file
 from services.inventory_import_service import parse_inventory_csv, build_asset_name, build_observacoes, INVENTORY_CATEGORIES
-from services.asset_service import NO_RESPONSIBLE_CATEGORIES
 
 class AssetListView(BaseView):
     def __init__(self, page: ft.Page, db, navigate_to, **kwargs):
@@ -48,6 +47,7 @@ class AssetListView(BaseView):
         self.search_field = ft.TextField(
             label="Pesquisar por nome ou plaqueta",
             expand=True,
+            width=260,  # usado como largura minima quando a filter_row quebra linha (wrap) em telas estreitas
             prefix_icon=ft.Icons.SEARCH_ROUNDED,
             on_change=self._trigger_search,
             border_radius=8
@@ -113,7 +113,7 @@ class AssetListView(BaseView):
             self.filter_status,
             self.bulk_label_btn,
             self.new_asset_btn
-        ], spacing=10, vertical_alignment=ft.CrossAxisAlignment.CENTER)
+        ], spacing=10, vertical_alignment=ft.CrossAxisAlignment.CENTER, wrap=True, run_spacing=10)
         
         # Tabela
         self.table = CustomTable(
@@ -152,7 +152,7 @@ class AssetListView(BaseView):
             border_radius=8,
             expand=True
         )
-        self.form_employee = ft.Dropdown(label="Funcionário Responsável*", hint_text="Selecione o Responsável", visible=False, enable_filter=True, editable=True, border_radius=8, expand=True)
+        self.form_employee = ft.Dropdown(label="Funcionário Responsável", hint_text="Selecione o Responsável (opcional)", visible=False, enable_filter=True, editable=True, border_radius=8, expand=True)
         self._bind_dropdown_tab_autofill(self.form_category, extra_on_blur=self._on_form_category_change)
         self._bind_dropdown_tab_autofill(self.form_sector)
         self._bind_dropdown_tab_autofill(self.form_employee)
@@ -394,7 +394,7 @@ class AssetListView(BaseView):
 
         # A categoria pode mudar depois do status já estar "Em uso" -- recalcula
         # se o funcionário responsável ainda é exigido.
-        self.form_employee.visible = self._employee_required()
+        self.form_employee.visible = self._show_employee_field()
         try:
             self.form_employee.update()
         except RuntimeError:
@@ -440,19 +440,16 @@ class AssetListView(BaseView):
         self.inventory_file_text.weight = None
         self.inventory_file_text.color = ft.Colors.ON_SURFACE_VARIANT
 
-    def _employee_required(self) -> bool:
+    def _show_employee_field(self) -> bool:
         """
-        Funcionário responsável só é exigido quando o status é "Em uso" --
-        exceto pra categorias em NO_RESPONSIBLE_CATEGORIES (Ar Condicionado, Switch...),
-        (é um bem do setor/ambiente, não de uma pessoa).
+        Funcionário responsável só aparece quando o status é "Em uso" -- mas é
+        sempre opcional (não bloqueia salvar), pra permitir marcar como "Em
+        uso" sem precisar indicar um responsável individual.
         """
-        if self.form_status.value != "Em uso":
-            return False
-        category_name = self._category_names_by_id.get(self.form_category.value)
-        return category_name not in NO_RESPONSIBLE_CATEGORIES
+        return self.form_status.value == "Em uso"
 
     def _on_form_status_change(self, e):
-        self.form_employee.visible = self._employee_required()
+        self.form_employee.visible = self._show_employee_field()
         try:
             self.form_employee.update()
         except RuntimeError:
@@ -525,7 +522,7 @@ class AssetListView(BaseView):
         self.form_sector.value = str(asset.setor_id)
         self.form_status.value = asset.status
         self.form_employee.value = str(asset.funcionario_id) if asset.funcionario_id else None
-        self.form_employee.visible = self._employee_required()
+        self.form_employee.visible = self._show_employee_field()
         self.form_nf.value = asset.nota_fiscal or ""
         self.form_garantia.value = str(asset.garantia_meses) if asset.garantia_meses is not None else ""
         self.form_obs.value = asset.observacoes or ""
@@ -557,26 +554,46 @@ class AssetListView(BaseView):
             except RuntimeError:
                 pass
 
+        # Responsivo: em telas estreitas (celular), empilha os campos que
+        # normalmente ficam lado a lado, e o modal usa quase a largura toda
+        # da tela em vez de um tamanho fixo pensado pra desktop.
+        page_width = self.page.width or 1280
+        page_height = self.page.height or 800
+        is_narrow = page_width < 600
+        modal_width = min(550, page_width - 32)
+        modal_height = min(480, page_height - 140)
+
+        category_sector_row = (
+            ft.Column([self.form_category, self.form_sector], spacing=12)
+            if is_narrow else
+            ft.Row([self.form_category, self.form_sector], spacing=10)
+        )
+        status_employee_row = (
+            ft.Column([self.form_status, self.form_employee], spacing=12)
+            if is_narrow else
+            ft.Row([self.form_status, self.form_employee], spacing=10)
+        )
+
         dialog = ft.AlertDialog(
             modal=True,
             title=ft.Text(title, weight=ft.FontWeight.BOLD),
             content=ft.Container(
                 content=ft.Column([
                     self.form_nome,
-                    ft.Row([self.form_category, self.form_sector], spacing=10),
-                    ft.Row([self.form_status, self.form_employee], spacing=10),
+                    category_sector_row,
+                    status_employee_row,
                     ft.Row([
                         self.date_btn,
                         self.date_text
-                    ], spacing=10, vertical_alignment=ft.CrossAxisAlignment.CENTER),
+                    ], spacing=10, vertical_alignment=ft.CrossAxisAlignment.CENTER, wrap=True),
                     ft.Row([self.form_nf, self.nf_upload_btn], spacing=5, vertical_alignment=ft.CrossAxisAlignment.CENTER),
                     self.nf_file_text,
                     self.inventory_row,
                     self.form_garantia,
                     self.form_obs,
                 ], spacing=12, scroll=ft.ScrollMode.AUTO),
-                width=550,
-                height=480
+                width=modal_width,
+                height=modal_height
             ),
             actions=[
                 ft.TextButton("Cancelar", on_click=close_dialog),
@@ -624,13 +641,7 @@ class AssetListView(BaseView):
         else:
             self.form_sector.error_text = None
             
-        category_name = self._category_names_by_id.get(cat_val)
-        employee_required = status == "Em uso" and category_name not in NO_RESPONSIBLE_CATEGORIES
-        if employee_required and not emp_val:
-            self.form_employee.error_text = "Selecione o Funcionário."
-            has_error = True
-        else:
-            self.form_employee.error_text = None
+        self.form_employee.error_text = None
 
         if has_error:
             try:
