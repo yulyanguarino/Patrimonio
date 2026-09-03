@@ -27,6 +27,14 @@ FONT_SIZE_NUMERO = 14
 ROLL_BORDER_MM = 4      # 0,4cm de borda nas laterais do rolo
 ROLL_COLUMN_GAP_MM = 3  # 0,3cm de espaço entre as duas etiquetas lado a lado
 
+# --- Comandos ZPL (impressora Elgin L42 Pro, 203 DPI de fábrica -- se a sua
+# unidade foi atualizada pra 300 DPI, mude ZPL_DPI pra 300) ---
+# Ainda não testado numa impressora de verdade -- provavelmente precisa de um
+# ajuste fino de posição/tamanho depois do primeiro teste real na aba
+# "Comandos" do L42 Pro Utility.
+ZPL_DPI = 203
+ZPL_QR_MAGNIFICATION = 5  # fator de escala do QR (1-10) -- ajustar se sair grande/pequeno demais
+
 
 class LabelService:
     def __init__(self, db: Session):
@@ -112,6 +120,60 @@ class LabelService:
 
         c.setFont("Helvetica-Bold", FONT_SIZE_NUMERO)
         c.drawString(text_x, (LABEL_HEIGHT_MM - 16) * mm, asset.numero_patrimonial)
+
+    def generate_label_zpl(self, asset_id: int) -> str:
+        """Gera um arquivo .txt com o comando ZPL de um único patrimônio, pra
+        carregar direto na aba "Comandos" do L42 Pro Utility e enviar pra
+        impressora (sem passar por PDF)."""
+        asset = self.asset_repo.get_by_id(asset_id)
+        if not asset:
+            raise BusinessRuleException("Patrimônio não encontrado.")
+
+        output_path = LABELS_DIR / f"{asset.numero_patrimonial}_etiqueta.txt"
+        zpl = self._build_zpl_block(asset)
+        output_path.write_text(zpl, encoding="utf-8")
+        return str(output_path)
+
+    def generate_labels_bulk_zpl(self, asset_ids: list[int]) -> str:
+        """Gera um único arquivo .txt com um bloco ZPL por patrimônio, em
+        sequência (a impressora imprime uma etiqueta atrás da outra)."""
+        assets = [self.asset_repo.get_by_id(asset_id) for asset_id in asset_ids]
+        assets = [a for a in assets if a]
+        if not assets:
+            raise BusinessRuleException("Nenhum patrimônio encontrado para gerar etiquetas.")
+
+        output_path = LABELS_DIR / "etiquetas_lote.txt"
+        zpl = "".join(self._build_zpl_block(asset) for asset in assets)
+        output_path.write_text(zpl, encoding="utf-8")
+        return str(output_path)
+
+    def _mm_to_dots(self, value_mm: float) -> int:
+        return round(value_mm * ZPL_DPI / 25.4)
+
+    def _build_zpl_block(self, asset) -> str:
+        """Monta o bloco ZPL (^XA...^XZ) de uma etiqueta -- mesmo layout do
+        PDF: QR à esquerda, "PATRIMÔNIO" + número à direita."""
+        url = self._build_status_url(asset.numero_patrimonial)
+
+        width_dots = self._mm_to_dots(LABEL_WIDTH_MM)
+        height_dots = self._mm_to_dots(LABEL_HEIGHT_MM)
+        margin_dots = self._mm_to_dots(LABEL_MARGIN_MM)
+        qr_size_dots = self._mm_to_dots(QR_SIZE_MM)
+
+        qr_x = margin_dots
+        qr_y = (height_dots - qr_size_dots) // 2
+        text_x = margin_dots * 2 + qr_size_dots
+
+        return (
+            "^XA\n"
+            f"^PW{width_dots}\n"
+            f"^LL{height_dots}\n"
+            f"^FO{qr_x},{qr_y}^BQN,2,{ZPL_QR_MAGNIFICATION}^FDQA,{url}^FS\n"
+            f"^FO{text_x},{margin_dots}^A0N,24,24^FDPATRIMONIO^FS\n"
+            f"^FO{text_x},{margin_dots + 34}^A0N,40,40^FD{asset.numero_patrimonial}^FS\n"
+            "^PQ1\n"
+            "^XZ\n"
+        )
 
     def _build_status_url(self, numero_patrimonial: str) -> str:
         public_base_url = os.getenv("PUBLIC_BASE_URL")

@@ -251,8 +251,18 @@ class AssetListView(BaseView):
         self._show_bulk_label_dialog(assets)
 
     def _show_bulk_label_dialog(self, assets):
+        format_dropdown = ft.Dropdown(
+            label="Arquivo gerado",
+            width=280,
+            options=[
+                ft.dropdown.Option("pdf", "PDF (imprimir normal)"),
+                ft.dropdown.Option("zpl", "TXT com comando ZPL (L42 Pro Utility)"),
+            ],
+            value="pdf",
+            border_radius=8,
+        )
         columns_dropdown = ft.Dropdown(
-            label="Formato de impressão",
+            label="Formato de impressão (só PDF)",
             width=280,
             options=[
                 ft.dropdown.Option("1", "1 coluna (uma etiqueta por vez)"),
@@ -272,12 +282,12 @@ class AssetListView(BaseView):
         dialog = ft.AlertDialog(
             modal=True,
             title=ft.Text(f"Gerar etiquetas de {len(assets)} patrimônio(s)", weight=ft.FontWeight.BOLD),
-            content=ft.Container(content=columns_dropdown, width=320),
+            content=ft.Container(content=ft.Column([format_dropdown, columns_dropdown], spacing=12), width=320),
             actions=[
                 ft.TextButton("Cancelar", on_click=close_dialog),
                 ft.ElevatedButton(
                     "Gerar Etiquetas",
-                    on_click=lambda e: self.page.run_task(self._confirm_generate_labels, dialog, assets, columns_dropdown),
+                    on_click=lambda e: self.page.run_task(self._confirm_generate_labels, dialog, assets, format_dropdown, columns_dropdown),
                     bgcolor=ft.Colors.BLUE_400,
                     color=ft.Colors.WHITE
                 )
@@ -294,7 +304,8 @@ class AssetListView(BaseView):
         except RuntimeError:
             pass
 
-    async def _confirm_generate_labels(self, dialog, assets, columns_dropdown):
+    async def _confirm_generate_labels(self, dialog, assets, format_dropdown, columns_dropdown):
+        file_format = format_dropdown.value or "pdf"
         columns = int(columns_dropdown.value or "1")
         dialog.open = False
         try:
@@ -302,7 +313,12 @@ class AssetListView(BaseView):
         except RuntimeError:
             pass
 
-        success, res = self.controller.generate_labels_bulk([a.id for a in assets], columns=columns)
+        asset_ids = [a.id for a in assets]
+        if file_format == "zpl":
+            success, res = self.controller.generate_labels_bulk_zpl(asset_ids)
+        else:
+            success, res = self.controller.generate_labels_bulk(asset_ids, columns=columns)
+
         if success:
             await reveal_file(
                 self.page, res,

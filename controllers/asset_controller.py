@@ -148,3 +148,23 @@ class AssetController(BaseController):
             return False, str(e)
         except Exception as e:
             return False, f"Erro inesperado ao gerar etiquetas: {str(e)}"
+
+    def generate_label_zpl(self, asset_id: int):
+        """Gera um .txt com comando ZPL de um único patrimônio (impressão via L42 Pro Utility)."""
+        try:
+            path = self.label_service.generate_label_zpl(asset_id)
+            return True, path
+        except BusinessRuleException as e:
+            return False, str(e)
+        except Exception as e:
+            return False, f"Erro inesperado ao gerar etiqueta: {str(e)}"
+
+    def generate_labels_bulk_zpl(self, asset_ids: list[int]):
+        """Gera um único .txt com comandos ZPL de vários patrimônios em sequência."""
+        try:
+            path = self.label_service.generate_labels_bulk_zpl(asset_ids)
+            return True, path
+        except BusinessRuleException as e:
+            return False, str(e)
+        except Exception as e:
+            return False, f"Erro inesperado ao gerar etiquetas: {str(e)}"
