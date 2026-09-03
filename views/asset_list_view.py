@@ -46,8 +46,7 @@ class AssetListView(BaseView):
         # Filtros
         self.search_field = ft.TextField(
             label="Pesquisar por nome ou plaqueta",
-            expand=True,
-            width=260,  # usado como largura minima quando a filter_row quebra linha (wrap) em telas estreitas
+            width=260,  # sem expand=True: um Row com wrap=True não lida bem com filhos "expand"
             prefix_icon=ft.Icons.SEARCH_ROUNDED,
             on_change=self._trigger_search,
             border_radius=8
@@ -113,7 +112,7 @@ class AssetListView(BaseView):
             self.filter_status,
             self.bulk_label_btn,
             self.new_asset_btn
-        ], spacing=10, vertical_alignment=ft.CrossAxisAlignment.CENTER, wrap=True, run_spacing=10)
+        ], spacing=10, vertical_alignment=ft.CrossAxisAlignment.CENTER)
         
         # Tabela
         self.table = CustomTable(
