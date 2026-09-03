@@ -12,9 +12,10 @@ from repositories.asset_repository import AssetRepository
 from utils.exceptions import BusinessRuleException
 from utils.network import get_local_ip
 
-# --- Layout da etiqueta térmica (placeholder — ajustar quando a impressora/rolo final for escolhida) ---
+# --- Layout da etiqueta térmica (tamanho confirmado: rolo real medido em 5x3cm, impressora Elgin L42) ---
 # Estrutura inspirada na etiqueta de referência do usuário: QR Code à esquerda (no lugar do
-# código de barras), texto "PATRIMÔNIO" + número em destaque à direita.
+# código de barras), texto "PATRIMÔNIO" + número em destaque à direita. O arranjo em 2 colunas
+# na impressão fica a cargo do utilitário da Elgin -- aqui só geramos cada etiqueta individual.
 LABEL_WIDTH_MM = 50
 LABEL_HEIGHT_MM = 30
 LABEL_MARGIN_MM = 3
