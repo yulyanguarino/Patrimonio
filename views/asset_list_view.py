@@ -244,12 +244,66 @@ class AssetListView(BaseView):
         assets = self._get_filtered_assets()
         self.table.update_data(assets, jump_to_last=jump_to_last)
 
-    async def _generate_all_labels(self, e):
+    def _generate_all_labels(self, e):
         assets = self._get_filtered_assets()
         if not assets:
             show_error_snackbar(self.page, "Nenhum patrimônio encontrado com os filtros atuais.")
             return
-        success, res = self.controller.generate_labels_bulk([a.id for a in assets])
+        self._show_bulk_label_dialog(assets)
+
+    def _show_bulk_label_dialog(self, assets):
+        columns_dropdown = ft.Dropdown(
+            label="Formato de impressão",
+            width=280,
+            options=[
+                ft.dropdown.Option("1", "1 coluna (uma etiqueta por vez)"),
+                ft.dropdown.Option("2", "2 colunas (etiquetas lado a lado)"),
+            ],
+            value="1",
+            border_radius=8,
+        )
+
+        def close_dialog(e):
+            dialog.open = False
+            try:
+                self.page.update()
+            except RuntimeError:
+                pass
+
+        dialog = ft.AlertDialog(
+            modal=True,
+            title=ft.Text(f"Gerar etiquetas de {len(assets)} patrimônio(s)", weight=ft.FontWeight.BOLD),
+            content=ft.Container(content=columns_dropdown, width=320),
+            actions=[
+                ft.TextButton("Cancelar", on_click=close_dialog),
+                ft.ElevatedButton(
+                    "Gerar Etiquetas",
+                    on_click=lambda e: self.page.run_task(self._confirm_generate_labels, dialog, assets, columns_dropdown),
+                    bgcolor=ft.Colors.BLUE_400,
+                    color=ft.Colors.WHITE
+                )
+            ],
+            actions_alignment=ft.MainAxisAlignment.END
+        )
+
+        if dialog not in self.page.overlay:
+            self.page.overlay.append(dialog)
+        self.page.dialog = dialog
+        dialog.open = True
+        try:
+            self.page.update()
+        except RuntimeError:
+            pass
+
+    async def _confirm_generate_labels(self, dialog, assets, columns_dropdown):
+        columns = int(columns_dropdown.value or "1")
+        dialog.open = False
+        try:
+            self.page.update()
+        except RuntimeError:
+            pass
+
+        success, res = self.controller.generate_labels_bulk([a.id for a in assets], columns=columns)
         if success:
             await reveal_file(
                 self.page, res,

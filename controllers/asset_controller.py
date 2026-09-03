@@ -139,10 +139,10 @@ class AssetController(BaseController):
         except Exception as e:
             return False, f"Erro inesperado ao gerar etiqueta: {str(e)}"
 
-    def generate_labels_bulk(self, asset_ids: list[int]):
-        """Gera um único PDF com uma etiqueta por página, para vários patrimônios de uma vez."""
+    def generate_labels_bulk(self, asset_ids: list[int], columns: int = 1):
+        """Gera um único PDF com as etiquetas de vários patrimônios (1 ou 2 colunas por página)."""
         try:
-            path = self.label_service.generate_labels_bulk(asset_ids)
+            path = self.label_service.generate_labels_bulk(asset_ids, columns=columns)
             return True, path
         except BusinessRuleException as e:
             return False, str(e)
