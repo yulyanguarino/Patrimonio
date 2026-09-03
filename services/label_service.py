@@ -29,11 +29,15 @@ ROLL_COLUMN_GAP_MM = 3  # 0,3cm de espaço entre as duas etiquetas lado a lado
 
 # --- Comandos ZPL (impressora Elgin L42 Pro, 203 DPI de fábrica -- se a sua
 # unidade foi atualizada pra 300 DPI, mude ZPL_DPI pra 300) ---
-# Ainda não testado numa impressora de verdade -- provavelmente precisa de um
-# ajuste fino de posição/tamanho depois do primeiro teste real na aba
-# "Comandos" do L42 Pro Utility.
+# Posições ajustadas por teste físico (não por fórmula): a impressora real
+# aparentemente soma uma margem própria por cima da nossa, então os valores
+# abaixo já compensam isso -- se o layout mudar de novo, ajuste aqui.
 ZPL_DPI = 203
 ZPL_QR_MAGNIFICATION = 5  # fator de escala do QR (1-10) -- ajustar se sair grande/pequeno demais
+ZPL_QR_TOP_MARGIN_MM = 2  # medido: fórmula centralizada (4mm) saía 0,6cm no físico -- reduzido pra 0,4cm ficar certo
+ZPL_TEXT_LABEL_FONT_DOTS = 24   # tamanho da fonte "PATRIMONIO"
+ZPL_TEXT_NUMERO_FONT_DOTS = 40  # tamanho da fonte do número
+ZPL_TEXT_LINE_GAP_DOTS = 10     # espaço entre as duas linhas de texto
 
 
 class LabelService:
@@ -196,13 +200,17 @@ class LabelService:
         qr_size_dots = self._mm_to_dots(QR_SIZE_MM)
 
         qr_x = offset_dots + margin_dots
-        qr_y = (height_dots - qr_size_dots) // 2
+        qr_y = self._mm_to_dots(ZPL_QR_TOP_MARGIN_MM)
         text_x = offset_dots + margin_dots * 2 + qr_size_dots
+
+        text_block_dots = ZPL_TEXT_LABEL_FONT_DOTS + ZPL_TEXT_LINE_GAP_DOTS + ZPL_TEXT_NUMERO_FONT_DOTS
+        text_top_y = (height_dots - text_block_dots) // 2
+        numero_y = text_top_y + ZPL_TEXT_LABEL_FONT_DOTS + ZPL_TEXT_LINE_GAP_DOTS
 
         return (
             f"^FO{qr_x},{qr_y}^BQN,2,{ZPL_QR_MAGNIFICATION}^FDQA,{url}^FS\n"
-            f"^FO{text_x},{margin_dots}^A0N,24,24^FDPATRIMONIO^FS\n"
-            f"^FO{text_x},{margin_dots + 34}^A0N,40,40^FD{asset.numero_patrimonial}^FS\n"
+            f"^FO{text_x},{text_top_y}^A0N,{ZPL_TEXT_LABEL_FONT_DOTS},{ZPL_TEXT_LABEL_FONT_DOTS}^FDPATRIMONIO^FS\n"
+            f"^FO{text_x},{numero_y}^A0N,{ZPL_TEXT_NUMERO_FONT_DOTS},{ZPL_TEXT_NUMERO_FONT_DOTS}^FD{asset.numero_patrimonial}^FS\n"
         )
 
     def _build_status_url(self, numero_patrimonial: str) -> str:
