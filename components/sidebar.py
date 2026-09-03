@@ -41,7 +41,7 @@ class Sidebar(ft.Container):
         if self._compact:
             brand_header = ft.Container(
                 content=ft.Icon(ft.Icons.MONETIZATION_ON_OUTLINED, color=ft.Colors.BLUE_400, size=28),
-                alignment=ft.alignment.center,
+                alignment=ft.Alignment.CENTER,
                 margin=ft.Margin.only(bottom=24),
                 tooltip="PATRIMÔNIO - Controle Interno"
             )
@@ -81,7 +81,7 @@ class Sidebar(ft.Container):
                     tooltip="Alternar modo escuro/claro",
                     on_click=self._toggle_theme_compact
                 ),
-                alignment=ft.alignment.center,
+                alignment=ft.Alignment.CENTER,
                 margin=ft.Margin.only(top=20)
             )
         else:
@@ -126,20 +126,18 @@ class Sidebar(ft.Container):
 
         if self._compact:
             content = ft.Icon(icon, color=icon_color, size=22)
-            alignment = ft.MainAxisAlignment.CENTER
         else:
             content = ft.Row([
                 ft.Icon(icon, color=icon_color, size=20),
                 ft.Text(label, color=text_color, size=14, weight=font_weight),
             ], spacing=12)
-            alignment = ft.MainAxisAlignment.START
 
         item = ft.Container(
             content=content,
             padding=ft.Padding.symmetric(vertical=14 if self._compact else 12, horizontal=8 if self._compact else 16),
             bgcolor=bg_color,
             border_radius=8,
-            alignment=ft.alignment.center if self._compact else None,
+            alignment=ft.Alignment.CENTER if self._compact else None,
             tooltip=label if self._compact else None,
             on_click=lambda e: self.on_navigate(route),
             on_hover=lambda e: self._on_item_hover(e, is_active)
